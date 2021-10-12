@@ -1,9 +1,22 @@
+from datetime import datetime
 import discord
 from discord.ext import tasks, commands
+from buttonpaginator import ButtonPaginate
+from dateutil import parser
+import traceback
 
 class CaseCheck(commands.Cog):
     def __init__(self, bot):
         self.bot=bot
+        self.checklist.start()
+
+    async def command_help_format(command, ctx):
+        if command._buckets and (cooldown := command._buckets._cooldown):
+            saying=f"**Cooldown:** {cooldown.per:.0f} seconds \n"
+        else:
+            saying=""
+        embed=discord.Embed(title=f"Command: {command.name}", description=f"**Description:** {command.short_doc} \n {saying} **Format:** {ctx.clean_prefix}{command.qualified_name} {command.signature} \n **Category:** {command.cog_name or 'N/A'} ")
+        return embed
 
     async def roblox_api_search(self, username:str, searchid=False):
         usercheck='get-by-username?username=' if searchid is True else ""
@@ -36,69 +49,236 @@ class CaseCheck(commands.Cog):
         rcheck=await self.roblox_api_search(member.name)
         if rcheck is not False:
             return rcheck
+        else:
+            return None
 
     async def search_by_roblox(self, ctx:commands.Context, guild:discord.Guild, username:str):
         try:
-            member=commands.MemberConverter.convert(ctx, username)
+            member=await commands.MemberConverter().convert(ctx, username)
             return member
         except:
             pass
-        cursor=await self.bot.db.cursor()
-        getuser=await cursor.execute("SELECT member FROM usernames WHERE username = ?", username)
-        if getuser is not None:
-            for row in getuser:
-                return guild.get_member(row[0])
         guildsearch={}
         for m in guild.members:
-            guildsearch[m.name]=m
-            guildsearch[m.nick]=m
+            guildsearch[m.name.lower()]=m
+            if m.nick is not None:
+                guildsearch[m.nick.lower()]=m
         for mem in guildsearch:
             if mem==username:
                 return guildsearch[mem]
-        return False
+        return None
 
     async def build_card_info(self, cardid:str): 
         async with self.bot.session.get(f"https://trello.com/c/{cardid}.json") as t:
             info = await t.json()
         comments=[]
         customfields=[]
-        title=info['name']
-        nametag=None
+        title:str=info['name']
         for comment in info['actions']:
             if comment['type']=='commentCard':
                 comments.append(comment['data']['text'])
-        for action in info['customFieldItems']:
-            if action['id'] == '6160b5e0dd8abf1dfa361802':
-                nametag=action['id']['value']['text'] 
-            if action['id'] in self.bot.customfields:
-                customfields.append(self.bot.customfields[action])
         url=info['url']
         board=self.bot.boardids[info['idBoard']]
-        cardlist=self.board.lists[info['idList']]
+        cardlist=self.bot.lists[info['idList']]
+        tmember=None
+        if info['idMembers']:
+            tmember=info['idMembers'][0]
+        lowertitle=title.lower()
+        newtitle=None
+        if lowertitle.startswith("ex parte "):
+            newtitle=lowertitle[9:]
+            if ":" in newtitle:
+                newtitle=newtitle.split(":")[0]
+        else:
+            if ":" in lowertitle:
+                newtitle=lowertitle.split(":")[0]
+        try:
+            parsedtime=parser.parse(info['actions'][-1]['date'])
+            stringtime=parsedtime.strftime("%m/%d/%Y")
+        except:
+            stringtime=None
         allinfo={
             'title': title,
-            'discord': nametag,
+            'discord': None,
+            'roblox': newtitle,
+            'judge': tmember,
             'board': board,
             'list': cardlist,
             'url': url,
-            'commands': comments,
-            'customfields': customfields,
+            'time': stringtime,
+            'comments': comments,
+            'customfields': None,
         }
+        for action in info['customFieldItems']:
+            if action['idCustomField'] == '5dafaa3a6063661f2734cb51':
+                allinfo['discord']=action['value']['text'] 
+            if 'idValue' in action:
+                if action['idValue'] in self.bot.customfields:
+                    customfield=self.bot.customfields[action['idValue']]
+                    allinfo[customfield[0]]=customfield[1]
+                    customfields.append(customfield)
+        allinfo['customfields']=customfields
         return allinfo
+
+    async def build_embed(self, cardinfo:dict):
+        hascomment=False
+        comments="**Card Comments**\n"
+        for comment in cardinfo['comments']:
+            comments=comments+f"> {comment}\n--\n"
+            hascomment=True
+        embed=discord.Embed(title=f"Case Info for {cardinfo['title']}", description=f"Board - **{cardinfo['board']}**\nCard List - **{cardinfo['list']}**\n[Card Link]({cardinfo['url']})\n\n{comments if hascomment is True else ''}", timestamp=discord.utils.utcnow(), color=753812)
+        for field in cardinfo['customfields']:
+            embed.add_field(name=field[0], value=field[1])
+        return embed
 
     @tasks.loop(seconds=15)
     async def checklist(self):
-        async with self.bot.session.get('https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards') as d:
+        checktrello=await self.bot.check_trello()
+        if checktrello is False:
+            return
+        async with self.bot.session.get('https://api.trello.com/1/list/6161be61b08f078e2ea15f40/cards') as d:
             dcinfo=await d.json()
-        async with self.bot.session.get('https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards') as c:
+        async with self.bot.session.get('https://api.trello.com/1/list/6161be67cc6fb96a709ddd51/cards') as c:
             csinfo=await c.json()
         cards=[]
         for dcard in dcinfo:
-            cards.append(dcard['id'])
+            async with self.bot.session.get(f"https://trello.com/c/{dcard['shortLink']}.json") as t:
+                cardinfo=await t.json()
+            for option in cardinfo['customFieldItems']:
+                if 'idValue' in option:
+                    if option['idValue'] == '5b3a95425b951686400f76b0':
+                        cards.append(dcard['shortLink'])
         for cscard in csinfo:
-            cards.append(cscard['id'])
-        if self.bot.cards is None:
+            cards.append(cscard['shortLink'])
+        if self.bot.cardlist is None:
             self.bot.cardlist=cards
             return
-        newcards=[card for card in cards if card not in self.bot.cardlist]
-        
+        if self.bot.cardlist:
+            newcards=[card for card in cards if card not in self.bot.cardlist]
+        else:
+            newcards=cards
+        fakecontext=discord.Object(id=0)
+        fakecontext.bot=self.bot
+        fakecontext.guild=self.bot.guild
+        for c in newcards:
+            buildcard=await self.build_card_info(c)
+            if buildcard['discord'] is None:
+                searchquery=buildcard['roblox']
+            else:
+                searchquery=buildcard['discord']
+            getmem=await self.search_by_roblox(fakecontext, self.bot.guild, searchquery)
+            if getmem is None:
+                continue
+            embed=await self.build_embed(buildcard)
+            embed.set_author(name=f"Your case has been ruled on", icon_url=getmem.avatar.url)
+            desc=f"`This is an automated message from the Firestone Courts involving a case you've filed. Any bugs or false information in this message should be reported to MrApples#2555`\nOn {buildcard['time']}, you "
+            if 'Trial' in buildcard:
+                desc=desc+f"petitioned for a `{buildcard['Trial']}`."
+            else:
+                desc=desc+f"filed a case."
+            if buildcard['judge'] is not None:
+                desc=desc+f" {self.bot.members[buildcard['judge']]} has ruled on your petition.\n\n"
+            else:
+                desc=desc+" Your petition has now been ruled on.\n\n"
+            embed.description=desc+embed.description
+            try:
+                await getmem.send(embed=embed)
+            except:
+                pass
+        self.bot.cardlist=cards
+
+    @checklist.before_loop
+    async def before_check(self):
+        await self.bot.wait_until_ready()
+
+    @checklist.error
+    async def checklist_error(self, error):
+        message = discord.Embed(
+            title="Unknown Error", description=f"```python\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}```")
+        await self.bot.owner.send(embed=message)
+        return
+
+    @commands.command(name="Search", help="Search for your court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. Provide an argument to search for a specific case, otherwise it will attempt to connect your Discord account to a Roblox username and search from there.", brief="Search for a court case")
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
+    async def search(self, ctx, *, search:str=None):
+        checktrello=await self.bot.check_trello()
+        if checktrello is False:
+            await ctx.send("Trello is currently down, please try again later.")
+            return
+        if search is None:
+            search=await self.search_by_discord(ctx.author)
+            if search is None:
+                await ctx.send("I was unable to connect you to a Roblox account! Try specifying an argument to which you want to search.")
+                return
+        if len(search)<3:
+            await ctx.send("Search term too short.")
+            return
+        async with self.bot.session.get(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d') as d:
+            dcresults=await d.json()
+        async with self.bot.session.get(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09') as c:
+            csresults=await c.json()
+        allresults=dcresults['cards']+csresults['cards']
+        if not allresults:
+            await ctx.send("No search results found, please specify a term in text you wish to search for, or search without an argument.")
+            return
+        embeds=[]
+        badlists=['593b1c65cf948f5ef96fe2bc', '593b1c5e82af460cb51b61c7', '593b20c4a070c27f2048933e', '5cd358266d1c0029533e6880', '613e35722b9a324d83a928db', '5af50745fd4ebab238bbecd5', '5adb8052a04c1efc18f3f649', '5b34ee75a4f7310b788c64a0', '5edc81b737cf0374703505e4', '5ee084d6271f803b0ebea045', '613e1236746ade0675e0fc6b', '615a1aff7fcfe1212ae1a345', '5ee0847d0311740ab38f6c78', '5ee084511193c23f53c595b3', '5ee0843703024b801c52843c']
+        for result in allresults:
+            if result['id'] in badlists or result['idList'] in badlists:
+                continue
+            if result['idList'] not in self.bot.lists or result['closed'] is True:
+                continue
+            info=await self.build_card_info(result['shortLink'])
+            embed=await self.build_embed(info)
+            embed.set_footer(text=f"Search query: {search}")
+            embeds.append(embed)
+        if not embeds:
+            await ctx.send("No search reuslts found!")
+            return
+        await ButtonPaginate(ctx, embeds, ctx.author)
+
+    @commands.command(name="reload", help="Reloads a cog (updates the changes)", brief="Reloads a cog")
+    @commands.is_owner()
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
+    async def reload(self, ctx, cog_name=None):
+        if cog_name == None:
+            await ctx.send("Provide a cog for me to reload!")
+            return
+        try:
+            self.bot.reload_extension(cog_name)
+            await ctx.send(f"🔄 {cog_name} successfuly reloaded!")
+        except commands.errors.ExtensionNotFound:
+            await ctx.send(f"I did not find a cog named {cog_name}.")
+            return
+        except commands.errors.ExtensionNotLoaded:
+            await ctx.send(f"I did not find a cog named {cog_name}.")
+            return
+
+    @search.error
+    async def search_error(self, ctx:commands.Context, error:Exception):
+        error = getattr(error, 'original', error)
+        if isinstance(error, commands.NoPrivateMessage):
+            try:
+                message = discord.Embed(
+                    title="No Private Messages", description=f'{ctx.command} can not be used in Private Messages.')
+            except discord.HTTPException:
+                pass
+        elif isinstance(error, commands.CommandOnCooldown):
+            message = discord.Embed(
+                title="Cooldown", description=f"This command is on cooldown, try again in `{round(error.retry_after, 1)}` seconds.")
+        elif isinstance(error, commands.BadArgument):
+            message = await self.command_help_format(ctx.command.name, ctx)
+        elif isinstance(error, commands.CommandNotFound):
+            return
+        elif isinstance(error, discord.errors.Forbidden):
+            message = discord.Embed(
+                title="No Permissions", description="I am missing the required permissions to perform this command!")
+        else:
+            message = discord.Embed(
+                title="Unknown Error", description=f"```python\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}```")
+            await self.bot.owner.send(embed=message)
+            return
+        await ctx.send(embed=message)
+    
+def setup(bot):
+    bot.add_cog(CaseCheck(bot))
