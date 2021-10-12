@@ -198,7 +198,7 @@ class CaseCheck(commands.Cog):
         await self.bot.owner.send(embed=message)
         return
 
-    @commands.command(name="Search", help="Search for your court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. Provide an argument to search for a specific case, otherwise it will attempt to connect your Discord account to a Roblox username and search from there.", brief="Search for a court case")
+    @commands.command(name="search", help="Search for your court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. Provide an argument to search for a specific case, otherwise it will attempt to connect your Discord account to a Roblox username and search from there.", brief="Search for a court case")
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     async def search(self, ctx, *, search:str=None):
         checktrello=await self.bot.check_trello()
