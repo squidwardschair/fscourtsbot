@@ -18,7 +18,7 @@ class CourtsBot(commands.Bot):
         self.cardlist=None
         self.guild=None
         self.owner=None
-
+        
     async def close(self):
         await self.session.close()
         await super().close()

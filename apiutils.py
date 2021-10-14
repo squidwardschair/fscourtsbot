@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import discord
 from discord.ext import tasks, commands
 from buttonpaginator import ButtonPaginate
@@ -130,8 +130,79 @@ class CaseCheck(commands.Cog):
         for field in cardinfo['customfields']:
             embed.add_field(name=field[0], value=field[1])
         return embed
+    
+    async def find_expungement_pos(self, cardid:str):
+        async with self.bot.session.get("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards") as p:
+            info=await p.json()
+        badcount=0
+        pos=None
+        first=False
+        for i, card in enumerate(info):
+            if card['labels']:
+                badcount+=1
+                continue
+            if first is False:
+                first=card['shortLink']
+            if card['id']==cardid:
+                pos=i+1-badcount
+        if pos is None:
+            return False
+        if pos==1:
+            saying=False
+        else:
+            async with self.bot.session.get(f"https://trello.com/c/{first}.json") as t:
+                timeinfo=await t.json()
+            firstdate=parser.parse(timeinfo['actions'][-1]['date'])
+            objdiff=discord.utils.utcnow()-firstdate
+            diff=objdiff.days
+            if diff==0:
+                saying=" Estimated time unavaliable as the expungement has been filed less than24 hours ago."
+            else:
+                etadate=discord.utils.utcnow()+datetime.timedelta(days=diff)
+                saying=f" The estimated time length until your expungement is heard is `{diff} days`, making the estimated date **{etadate.strftime('%m/%d/%Y')}**."
+        return {
+            'position': pos,
+            'maxposition': i,
+            'saying': saying,
+        }
+    
+    async def run_search(self, ctx, search):
+        async with self.bot.session.get(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d') as d:
+            dcresults=await d.json()
+        async with self.bot.session.get(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09') as c:
+            csresults=await c.json()
+        results=dcresults['cards']+csresults['cards']
+        if not results:
+            await ctx.send("No search results found, please specify a term in text you wish to search for, or search without an argument.")
+            return
+        embeds=[]
+        badlists=['593b1c65cf948f5ef96fe2bc', '593b1c5e82af460cb51b61c7', '593b20c4a070c27f2048933e', '5cd358266d1c0029533e6880', '613e35722b9a324d83a928db', '5af50745fd4ebab238bbecd5', '5adb8052a04c1efc18f3f649', '5b34ee75a4f7310b788c64a0', '5edc81b737cf0374703505e4', '5ee084d6271f803b0ebea045', '613e1236746ade0675e0fc6b', '615a1aff7fcfe1212ae1a345', '5ee0847d0311740ab38f6c78', '5ee084511193c23f53c595b3', '5ee0843703024b801c52843c']
+        addexpunge=False
+        for result in results:
+            if result['id'] in badlists or result['idList'] in badlists:
+                continue
+            if result['idList'] not in self.bot.lists or result['closed'] is True:
+                continue
+            if result['idList']=='5ee0847c0311740ab38f6c3a':
+                addexpunge=True
+                posinfo=await self.find_expungement_pos(result['id'])
+                print(posinfo)
+                if posinfo['saying'] is False:
+                    saying=""
+                else:
+                    saying=posinfo['saying']
+            info=await self.build_card_info(result['shortLink'])
+            embed=await self.build_embed(info)
+            embed.set_footer(text=f"Search query: {search}")
+            if addexpunge is True:
+                embed.description=f"Your expungement is currently **PENDING** and awaiting to be claimed by a Judicial Official. You are are currently number `{posinfo['position']}/{posinfo['maxposition']}` in the Pending Record Expungement Queue.{saying}\n"+embed.description
+            embeds.append(embed)
+        if not embeds:
+            await ctx.send("No search results found!")
+            return
+        await ButtonPaginate(ctx, embeds, ctx.author)
 
-    @tasks.loop(seconds=15)
+    @tasks.loop(minutes=2)
     async def checklist(self):
         checktrello=await self.bot.check_trello()
         if checktrello is False:
@@ -198,7 +269,7 @@ class CaseCheck(commands.Cog):
         await self.bot.owner.send(embed=message)
         return
 
-    @commands.command(name="search", help="Search for your court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. Provide an argument to search for a specific case, otherwise it will attempt to connect your Discord account to a Roblox username and search from there.", brief="Search for a court case")
+    @commands.command(name="search", help="Search for a court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. You must provide an text argument to search for on the boards. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Search for a court case using the search term in your argument")
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     async def search(self, ctx, *, search:str=None):
         checktrello=await self.bot.check_trello()
@@ -206,36 +277,29 @@ class CaseCheck(commands.Cog):
             await ctx.send("Trello is currently down, please try again later.")
             return
         if search is None:
-            search=await self.search_by_discord(ctx.author)
-            if search is None:
-                await ctx.send("I was unable to connect you to a Roblox account! Try specifying an argument to which you want to search.")
-                return
+            await ctx.send("Provide a search term for me to search for.")
+            return
         if len(search)<3:
             await ctx.send("Search term too short.")
             return
-        async with self.bot.session.get(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d') as d:
-            dcresults=await d.json()
-        async with self.bot.session.get(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09') as c:
-            csresults=await c.json()
-        allresults=dcresults['cards']+csresults['cards']
-        if not allresults:
-            await ctx.send("No search results found, please specify a term in text you wish to search for, or search without an argument.")
+        message=await ctx.send("Retriving case info...")
+        await self.run_search(ctx, search)
+        await message.delete()
+
+    @commands.command(name="caseinfo", help="Search for your own cases in the Case Submission Center or District Court of Firestone. The bot will attempt to connect your Discord account to a Roblox username using your username, discord name, or Rover/Bloxlink connections and search from there. The bot will return a paginated list of embeds containing matches of your Roblox username. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Search for your own court cases")
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
+    async def caseinfo(self, ctx):
+        checktrello=await self.bot.check_trello()
+        if checktrello is False:
+            await ctx.send("Trello is currently down, please try again later.")
             return
-        embeds=[]
-        badlists=['593b1c65cf948f5ef96fe2bc', '593b1c5e82af460cb51b61c7', '593b20c4a070c27f2048933e', '5cd358266d1c0029533e6880', '613e35722b9a324d83a928db', '5af50745fd4ebab238bbecd5', '5adb8052a04c1efc18f3f649', '5b34ee75a4f7310b788c64a0', '5edc81b737cf0374703505e4', '5ee084d6271f803b0ebea045', '613e1236746ade0675e0fc6b', '615a1aff7fcfe1212ae1a345', '5ee0847d0311740ab38f6c78', '5ee084511193c23f53c595b3', '5ee0843703024b801c52843c']
-        for result in allresults:
-            if result['id'] in badlists or result['idList'] in badlists:
-                continue
-            if result['idList'] not in self.bot.lists or result['closed'] is True:
-                continue
-            info=await self.build_card_info(result['shortLink'])
-            embed=await self.build_embed(info)
-            embed.set_footer(text=f"Search query: {search}")
-            embeds.append(embed)
-        if not embeds:
-            await ctx.send("No search reuslts found!")
+        search=await self.search_by_discord(ctx.author)
+        if search is None:
+            await ctx.send("I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account or verifying with Rover or Bloxlink.")
             return
-        await ButtonPaginate(ctx, embeds, ctx.author)
+        message=await ctx.send("Retriving case info...")
+        await self.run_search(ctx, search)
+        await message.delete()
 
     @commands.command(name="reload", help="Reloads a cog (updates the changes)", brief="Reloads a cog")
     @commands.is_owner()
@@ -254,8 +318,8 @@ class CaseCheck(commands.Cog):
             await ctx.send(f"I did not find a cog named {cog_name}.")
             return
 
-    @search.error
-    async def search_error(self, ctx:commands.Context, error:Exception):
+    @commands.Cog.listener()    
+    async def on_command_error(self, ctx:commands.Context, error:Exception):
         error = getattr(error, 'original', error)
         if isinstance(error, commands.NoPrivateMessage):
             try:
@@ -274,10 +338,12 @@ class CaseCheck(commands.Cog):
             message = discord.Embed(
                 title="No Permissions", description="I am missing the required permissions to perform this command!")
         else:
-            message = discord.Embed(
+            badmsg = discord.Embed(
                 title="Unknown Error", description=f"```python\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}```")
-            await self.bot.owner.send(embed=message)
-            return
+            message = discord.Embed(
+                title="Unknown Error", description=f"An unknown error has occured and has been reported to my owner!")
+            await self.bot.owner.send(embed=badmsg)
+            
         await ctx.send(embed=message)
     
 def setup(bot):
