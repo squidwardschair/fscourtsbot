@@ -10,7 +10,7 @@ import pathlib
 
 class CourtsBot(commands.Bot):
     def __init__(self):
-        super().__init__(intents=discord.Intents.all(), command_prefix=commands.when_mentioned_or("c!"), case_insensitive=True, help_command=CourtHelp())
+        super().__init__(intents=discord.Intents.all(), command_prefix=commands.when_mentioned_or("."), case_insensitive=True, help_command=CourtHelp())
         self.uptime=discord.utils.utcnow()
         self.customfields={}
         self.lists={}
