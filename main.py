@@ -7,7 +7,7 @@ import pathlib
 
 class CourtsBot(commands.Bot):
     def __init__(self):
-        super().__init__(intents=discord.Intents.all(), command_prefix=commands.when_mentioned_or("."), case_insensitive=True, help_command=CourtHelp())
+        super().__init__(intents=discord.Intents.all(), command_prefix=commands.when_mentioned_or("?"), case_insensitive=True, help_command=CourtHelp())
         self.uptime=discord.utils.utcnow()
         self.customfields={}
         self.lists={}
@@ -71,7 +71,7 @@ class CourtHelp(commands.HelpCommand):
         embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
         embed.set_thumbnail(url=ctx.me.display_avatar.url)
         view=HelpView(embeds, ctx.author)
-        await ctx.reply(embed=embed, view=view)
+        view.message=await ctx.reply(embed=embed, view=view)
 
     send_bot_help = send_cog_help = send_group_help = send_all_help
 

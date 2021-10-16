@@ -61,6 +61,7 @@ class HelpSelect(discord.ui.Select):
         super().__init__(placeholder="Select a command", row=0)
         self.embeddict=embeddict
         self.initiator=initiator
+        self.message=None
         for option in self.embeddict:
             self.add_option(label=option, description=self.embeddict[option][0], emoji=self.embeddict[option][1])
 
@@ -80,5 +81,4 @@ class HelpView(discord.ui.View):
             return True
 
     async def on_timeout(self:discord.ui.View):
-        self.clear_items()
-    
+        await self.message.edit(view=None)
