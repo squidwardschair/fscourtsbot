@@ -134,7 +134,7 @@ bot = CourtsBot()
 
 @bot.event
 async def on_ready():
-    bot.guild = bot.get_guild(875457215727816805)
+    bot.guild = bot.get_guild(322924318545805312)
     bot.owner = bot.get_user(474744664449089556)
     checktrello = await bot.check_trello()
     if checktrello is False:

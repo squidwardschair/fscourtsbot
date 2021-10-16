@@ -262,19 +262,13 @@ class CoreCommands(commands.Cog):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
             return
-        async with self.bot.session.get(
-            "https://api.trello.com/1/list/6161be61b08f078e2ea15f40/cards"
-        ) as d:
+        async with self.bot.session.get("https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards") as d:
             dcinfo = await d.json()
-        async with self.bot.session.get(
-            "https://api.trello.com/1/list/6161be67cc6fb96a709ddd51/cards"
-        ) as c:
+        async with self.bot.session.get("https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards") as c:
             csinfo = await c.json()
         cards = []
         for dcard in dcinfo:
-            async with self.bot.session.get(
-                f"https://trello.com/c/{dcard['shortLink']}.json"
-            ) as t:
+            async with self.bot.session.get(f"https://trello.com/c/{dcard['shortLink']}.json") as t:
                 cardinfo = await t.json()
             for option in cardinfo["customFieldItems"]:
                 if "idValue" in option:
