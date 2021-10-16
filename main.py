@@ -2,9 +2,6 @@ import discord
 from discord.ext import commands, tasks
 import aiohttp
 import config
-import datetime
-import os
-import asqlite
 from buttonpaginator import HelpView
 import pathlib
 
