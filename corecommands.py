@@ -164,8 +164,8 @@ class CoreCommands(commands.Cog):
             if diff==0:
                 saying=" Estimated time unavaliable as the expungement has been filed less than24 hours ago."
             else:
-                etadate=carddate+datetime.timedelta(days=diff)
-                saying=f" The estimated time length until your expungement is heard is `{diff} days`, making the estimated date **{etadate.strftime('%m/%d/%Y')}**."
+                etadate=carddate+datetime.timedelta(days=diff)+datetime.timedelta(days=15)
+                saying=f" The estimated time length until the expungement is heard is `{diff} days`. It is likely that your expungement will be processed on or after approximately **{etadate.strftime('%m/%d/%Y')}**."
         return {
             'position': pos,
             'maxposition': i,
@@ -200,7 +200,7 @@ class CoreCommands(commands.Cog):
             embed=await self.build_embed(info)
             embed.set_footer(text=f"Search query: {search}")
             if addexpunge is True:
-                embed.description=f"Your expungement is currently **PENDING** and awaiting to be claimed by a Judicial Official. You are are currently number `{posinfo['position']}/{posinfo['maxposition']}` in the Pending Record Expungement Queue.{saying}\n"+embed.description
+                embed.description=f"This expungement is currently **PENDING** and awaiting to be claimed by a Judicial Official. The expungement is currently number `{posinfo['position']}/{posinfo['maxposition']}` in the Pending Record Expungement Queue.{saying}\n"+embed.description
             embeds.append(embed)
         if not embeds:
             await ctx.send("No search results found!")
@@ -276,19 +276,19 @@ class CoreCommands(commands.Cog):
 
     @commands.command(name="search", help="Search for a court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. You must provide an text argument to search for on the boards. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Search for a court case")
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
-    async def search(self, ctx, *, search:str=None):
+    async def search(self, ctx, *, query:str=None):
         checktrello=await self.bot.check_trello()
         if checktrello is False:
             await ctx.send("Trello is currently down, please try again later.")
             return
-        if search is None:
+        if query is None:
             await ctx.send("Provide a search term for me to search for.")
             return
-        if len(search)<3:
+        if len(query)<3:
             await ctx.send("Search term too short.")
             return
         message=await ctx.send("Retriving case info...")
-        await self.run_search(ctx, search)
+        await self.run_search(ctx, query)
         await message.delete()
 
     @commands.command(name="caseinfo", help="Search for your own cases in the Case Submission Center or District Court of Firestone. The bot will attempt to connect your Discord account to a Roblox username using your username, discord name, or Rover/Bloxlink connections and search from there. The bot will return a paginated list of embeds containing matches of your Roblox username. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Get your own court cases")
