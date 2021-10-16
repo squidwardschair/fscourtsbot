@@ -321,7 +321,7 @@ class CoreCommands(commands.Cog):
         embed.add_field(name="Lines of Code", value=f"`{self.bot.loc}`")
         embed.add_field(name="Source Language", value="discord.py 2.0.0a")
         embed.add_field(name="Memory Usage", value=f"{round(Process(getpid()).memory_info().rss/1024/1024, 2)} MB")
-        embed.add_field(name="CPU Usage", value=f"{Process(getpid()).cpu_percent() / cpu_percent()}%")
+        embed.add_field(name="CPU Usage", value=f"{Process(getpid()).cpu_percent()}%")
         embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
         await msg.delete()
         await ctx.reply(embed=embed)
