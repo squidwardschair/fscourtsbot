@@ -155,8 +155,10 @@ class CoreCommands(commands.Cog):
         else:
             async with self.bot.session.get(f"https://trello.com/c/{first}.json") as t:
                 timeinfo=await t.json()
+            async with self.bot.session.get(f"https://trello.com/c/{carddata['shortLink']}.json") as c:
+                currentinfo=await c.json()
             firstdate=parser.parse(timeinfo['actions'][-1]['date'])
-            carddate=parser.parse(carddata['actions'][-1]['date'])
+            carddate=parser.parse(currentinfo['actions'][-1]['date'])
             objdiff=discord.utils.utcnow()-firstdate
             diff=objdiff.days
             if diff==0:
@@ -190,7 +192,6 @@ class CoreCommands(commands.Cog):
             if result['idList']=='5ee0847c0311740ab38f6c3a':
                 addexpunge=True
                 posinfo=await self.find_expungement_pos(result)
-                print(posinfo)
                 if posinfo['saying'] is False:
                     saying=""
                 else:
