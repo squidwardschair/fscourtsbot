@@ -5,7 +5,8 @@ import config
 import datetime
 import os
 import asqlite
-from buttonpaginator import ButtonPaginate
+from buttonpaginator import HelpView
+import pathlib
 
 class CourtsBot(commands.Bot):
     def __init__(self):
@@ -18,7 +19,8 @@ class CourtsBot(commands.Bot):
         self.cardlist=None
         self.guild=None
         self.owner=None
-        
+        self.loc=None
+
     async def close(self):
         await self.session.close()
         await super().close()
@@ -34,7 +36,16 @@ class CourtsBot(commands.Bot):
                 return True
 
     def run_bot(self):
-        self.load_extension("apiutils")
+        p = pathlib.Path('./')
+        count=0
+        for f in p.rglob('*.py'):
+            if str(f).startswith("config"):
+                continue
+            with f.open(encoding='utf8') as of:
+                for l in of.readlines():
+                    count += 1
+        self.loc=count
+        self.load_extension("corecommands")
         self.run(config.TOKEN)
 
 class CourtHelp(commands.HelpCommand):
@@ -50,24 +61,26 @@ class CourtHelp(commands.HelpCommand):
 
     async def send_all_help(self, *args, **kwargs):
         ctx=self.context
-        embed=discord.Embed(title="Firestone Court Utilities Help", description=f"**{ctx.guild.name}'s prefix:** `{ctx.clean_prefix}` \n ```diff\n+ This bot is a utilities bot for the Firestone Courts that allows you to search for cases and send automatic messages when cases are declined and expungements are completed.\n- <> is required | [] is optional\n+ Use the arrows to navigate through the command categories!```", timestamp=discord.utils.utcnow(), color=discord.Color.teal())
-        embeds=[embed]
+        embed=discord.Embed(title="Firestone Court Utilities Help", description=f"This bot is a utilities bot for the Firestone Courts that allows you to find your own cases, search for cases, and send automatic messages when cases are declined and expungements are completed. Use the dropdown menu to navigate through the commands.\n\n **Automatic Notifications**\nThe bot is on a 2 minute loop that checks for cases that have been completed. The bot will notify you for completed expungements with a copy of the card comments and the verdict, as well as declined cases with the same information.\n\n**{ctx.guild.name}'s prefix:** `{ctx.clean_prefix}`", timestamp=discord.utils.utcnow(), color=discord.Color.teal())
+        embeds={"Main Help Page": ["The main page for the help command", "🔷", embed]}
+        emojis={"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚"}
         filtercommands=await self.filter_commands(ctx.bot.commands, sort=True)
         for command in filtercommands:
-            if command==self:
+            if command.name=="reload":
                 continue
             embed.add_field(name=self.get_command_signature(command), value=command.brief)
-            embeds.append(await self.send_command_help(command, fake=True))
+            embeds[command.name]=[command.brief, emojis[command.name], await self.send_command_help(command, fake=True)]
         embed.set_author(name=str(ctx.author), icon_url=ctx.author.display_avatar.url)
         embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
         embed.set_thumbnail(url=ctx.me.display_avatar.url)
-        await ButtonPaginate(ctx, embeds, ctx.author)
+        view=HelpView(embeds, ctx.author)
+        await ctx.reply(embed=embed, view=view)
 
     send_bot_help = send_cog_help = send_group_help = send_all_help
 
     async def send_command_help(self, command, fake=False):
         ctx=self.context
-        embed=discord.Embed(title=f"{ctx.clean_prefix}{command}", description=command.help)
+        embed=discord.Embed(title=f"{ctx.clean_prefix}{command}", description=command.help, color=discord.Color.teal())
         embed.add_field(name="Usage", value=f"`{self.get_command_signature(command)}`", inline=True)
         if command._buckets and (cooldown := command._buckets._cooldown):
           embed.add_field(name="Cooldown", value=f"{cooldown.per:.0f} seconds", inline=True)
@@ -78,7 +91,7 @@ class CourtHelp(commands.HelpCommand):
         embed.set_footer(text=f"Do {ctx.clean_prefix}help for more information | <> is required | [] is optional")
         if fake is True:
             return embed
-        await ctx.send(embed=embed)
+        await ctx.reply(embed=embed)
 
     async def send_error_message(self, error):
       embed = discord.Embed(title="Help not found!", description=error)
@@ -89,12 +102,13 @@ bot=CourtsBot()
 
 @bot.event
 async def on_ready():
-    checktrello=await bot.check_trello()
-    if checktrello is False:
-        print("trello is down")
-        await bot.close()
     bot.guild=bot.get_guild(875457215727816805)
     bot.owner=bot.get_user(474744664449089556)
+    checktrello=await bot.check_trello()
+    if checktrello is False:
+        await bot.owner.send("trello is down auto shutdown")
+        print("trello is down")
+        await bot.close()
     cfitems=['5c3bcd0f80f20614a4c72093', '5b08b5face269325c8ed581d', '5b06d74758c55f9759d896df', '5b06d1c81e3ecc5e2f288da7', '5bca6f3c24afea5d2b007136', '5c54684b92c5f91774896b08']
     for item in cfitems:
         async with bot.session.get(f"https://api.trello.com/1/customFields/{item}") as i:

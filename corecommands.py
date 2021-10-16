@@ -4,8 +4,11 @@ from discord.ext import tasks, commands
 from buttonpaginator import ButtonPaginate
 from dateutil import parser
 import traceback
+import time
+from psutil import Process, cpu_percent
+from os import getpid
 
-class CaseCheck(commands.Cog):
+class CoreCommands(commands.Cog):
     def __init__(self, bot):
         self.bot=bot
         self.checklist.start()
@@ -131,7 +134,7 @@ class CaseCheck(commands.Cog):
             embed.add_field(name=field[0], value=field[1])
         return embed
     
-    async def find_expungement_pos(self, cardid:str):
+    async def find_expungement_pos(self, carddata:dict):
         async with self.bot.session.get("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards") as p:
             info=await p.json()
         badcount=0
@@ -143,7 +146,7 @@ class CaseCheck(commands.Cog):
                 continue
             if first is False:
                 first=card['shortLink']
-            if card['id']==cardid:
+            if card['id']==carddata['id']:
                 pos=i+1-badcount
         if pos is None:
             return False
@@ -153,12 +156,13 @@ class CaseCheck(commands.Cog):
             async with self.bot.session.get(f"https://trello.com/c/{first}.json") as t:
                 timeinfo=await t.json()
             firstdate=parser.parse(timeinfo['actions'][-1]['date'])
+            carddate=parser.parse(carddata['actions'][-1]['date'])
             objdiff=discord.utils.utcnow()-firstdate
             diff=objdiff.days
             if diff==0:
                 saying=" Estimated time unavaliable as the expungement has been filed less than24 hours ago."
             else:
-                etadate=discord.utils.utcnow()+datetime.timedelta(days=diff)
+                etadate=carddate+datetime.timedelta(days=diff)
                 saying=f" The estimated time length until your expungement is heard is `{diff} days`, making the estimated date **{etadate.strftime('%m/%d/%Y')}**."
         return {
             'position': pos,
@@ -185,7 +189,7 @@ class CaseCheck(commands.Cog):
                 continue
             if result['idList']=='5ee0847c0311740ab38f6c3a':
                 addexpunge=True
-                posinfo=await self.find_expungement_pos(result['id'])
+                posinfo=await self.find_expungement_pos(result)
                 print(posinfo)
                 if posinfo['saying'] is False:
                     saying=""
@@ -269,7 +273,7 @@ class CaseCheck(commands.Cog):
         await self.bot.owner.send(embed=message)
         return
 
-    @commands.command(name="search", help="Search for a court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. You must provide an text argument to search for on the boards. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Search for a court case using the search term in your argument")
+    @commands.command(name="search", help="Search for a court case on the District Court of Firestone board or the Case Submission Center board. Will return paginated list of embeds for you to scroll through. You must provide an text argument to search for on the boards. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Search for a court case")
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     async def search(self, ctx, *, search:str=None):
         checktrello=await self.bot.check_trello()
@@ -286,7 +290,7 @@ class CaseCheck(commands.Cog):
         await self.run_search(ctx, search)
         await message.delete()
 
-    @commands.command(name="caseinfo", help="Search for your own cases in the Case Submission Center or District Court of Firestone. The bot will attempt to connect your Discord account to a Roblox username using your username, discord name, or Rover/Bloxlink connections and search from there. The bot will return a paginated list of embeds containing matches of your Roblox username. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Search for your own court cases")
+    @commands.command(name="caseinfo", help="Search for your own cases in the Case Submission Center or District Court of Firestone. The bot will attempt to connect your Discord account to a Roblox username using your username, discord name, or Rover/Bloxlink connections and search from there. The bot will return a paginated list of embeds containing matches of your Roblox username. Will return the card link found, the board and list its on, and any applicable custom fields such as status and verdict. If it is a pending expungement, it will also provide its position in line and estimated time of hearing.", brief="Get your own court cases")
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     async def caseinfo(self, ctx):
         checktrello=await self.bot.check_trello()
@@ -300,6 +304,27 @@ class CaseCheck(commands.Cog):
         message=await ctx.send("Retriving case info...")
         await self.run_search(ctx, search)
         await message.delete()
+
+    @commands.command(name="botinfo", help="Retrives information about the bot, including its latency, uptime, memory usage, and source code info.", brief="Retrives information about the bot")
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
+    async def botinfo(self, ctx):
+        starttime = time.perf_counter()
+        msg=await ctx.send("Retriving bot info...")
+        enddtime = time.perf_counter()
+        getuptime=discord.utils.utcnow()-self.bot.uptime
+        hours, remainder = divmod(int(getuptime.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        days, hours = divmod(hours, 24)
+        embed=discord.Embed(title="Bot Information", description=f"Utility bot for the Firestone Courts server to inform and assist the public of the Court's functions.\n\n**Uptime** - {days} days, {hours} hours, {minutes} minutes, {seconds} seconds", color=discord.Color.dark_grey(), timestamp=discord.utils.utcnow())
+        embed.add_field(name="Discord API Latency", value=f"`{round((enddtime-starttime) * 1000)}ms`")
+        embed.add_field(name="Websocket Latency", value=f"`{round(self.bot.latency * 1000)}ms`")
+        embed.add_field(name="Lines of Code", value=f"`{self.bot.loc}`")
+        embed.add_field(name="Source Language", value="discord.py 2.0.0a")
+        embed.add_field(name="Memory Usage", value=f"{round(Process(getpid()).memory_info().rss/1024/1024, 2)} MB")
+        embed.add_field(name="CPU Usage", value=f"{Process(getpid()).cpu_percent() / cpu_percent()}%")
+        embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
+        await msg.delete()
+        await ctx.reply(embed=embed)
 
     @commands.command(name="reload", help="Reloads a cog (updates the changes)", brief="Reloads a cog")
     @commands.is_owner()
@@ -339,12 +364,12 @@ class CaseCheck(commands.Cog):
                 title="No Permissions", description="I am missing the required permissions to perform this command!")
         else:
             badmsg = discord.Embed(
-                title="Unknown Error", description=f"```python\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}```")
+                title=f"Unknown Error, args: {ctx.args}, kwargs: {ctx.kwargs}", description=f"```python\n{''.join(traceback.format_exception(type(error), error, error.__traceback__))}```")
             message = discord.Embed(
-                title="Unknown Error", description=f"An unknown error has occured and has been reported to my owner!")
+                title="Unknown Error", description="An unknown error has occured and has been reported to my owner!")
             await self.bot.owner.send(embed=badmsg)
             
         await ctx.send(embed=message)
     
 def setup(bot):
-    bot.add_cog(CaseCheck(bot))
+    bot.add_cog(CoreCommands(bot))

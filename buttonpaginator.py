@@ -55,3 +55,30 @@ async def ButtonPaginate(ctx, embeds, initiator):
         return
     view=ButtonPaginator(embeds, initiator)
     view.message=await ctx.reply(embed=embeds[0], view=view)
+
+class HelpSelect(discord.ui.Select):
+    def __init__(self, embeddict, initiator):
+        super().__init__(placeholder="Select a command", row=0)
+        self.embeddict=embeddict
+        self.initiator=initiator
+        for option in self.embeddict:
+            self.add_option(label=option, description=self.embeddict[option][0], emoji=self.embeddict[option][1])
+
+    async def callback(self, interaction=discord.Interaction): 
+        await interaction.message.edit(embed=self.embeddict[interaction.data['values'][0]][2])
+    
+class HelpView(discord.ui.View):
+    def __init__(self, embeddict, initiator):
+        super().__init__(timeout=180)
+        self.initator=initiator
+        self.add_item(HelpSelect(embeddict, initiator))
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user.id!=self.initator.id:
+            return False
+        else:
+            return True
+
+    async def on_timeout(self:discord.ui.View):
+        self.clear_items()
+    
