@@ -172,15 +172,12 @@ class CoreCommands(commands.Cog):
         if pos == 1:
             saying = False
         else:
-            async with self.bot.session.get(f"https://trello.com/c/{first}.json") as t:
-                timeinfo = await t.json()
             async with self.bot.session.get(
                 f"https://trello.com/c/{carddata['shortLink']}.json"
             ) as c:
                 currentinfo = await c.json()
-            firstdate = parser.parse(timeinfo["actions"][-1]["date"])
             carddate = parser.parse(currentinfo["actions"][-1]["date"])
-            objdiff = discord.utils.utcnow() - firstdate
+            objdiff = discord.utils.utcnow() - carddate
             diff = objdiff.days
             if diff == 0:
                 saying = " Estimated time unavaliable as the expungement has been filed less than24 hours ago."
