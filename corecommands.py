@@ -172,12 +172,15 @@ class CoreCommands(commands.Cog):
         if pos == 1:
             saying = False
         else:
+            async with self.bot.session.get(f"https://trello.com/c/{first}.json") as t:
+                timeinfo = await t.json()
             async with self.bot.session.get(
                 f"https://trello.com/c/{carddata['shortLink']}.json"
             ) as c:
                 currentinfo = await c.json()
+            firstdate = parser.parse(timeinfo["actions"][-1]["date"])
             carddate = parser.parse(currentinfo["actions"][-1]["date"])
-            objdiff = discord.utils.utcnow() - carddate
+            objdiff = discord.utils.utcnow() - firstdate
             diff = objdiff.days
             if diff == 0:
                 saying = " Estimated time unavaliable as the expungement has been filed less than24 hours ago."
@@ -187,7 +190,7 @@ class CoreCommands(commands.Cog):
                     + datetime.timedelta(days=diff)
                     + datetime.timedelta(days=15)
                 )
-                saying = f" The estimated time length until the expungement is heard is `{diff} days`. It is likely that your expungement will be processed on or after approximately **{etadate.strftime('%m/%d/%Y')}**."
+                saying = f" The estimated time length until the expungement is heard from the date it was filed is `{diff} days`. It is likely that your expungement will be processed on or after approximately **{etadate.strftime('%m/%d/%Y')}**."
         return {
             "position": pos,
             "maxposition": i,
