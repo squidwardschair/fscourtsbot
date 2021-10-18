@@ -31,7 +31,7 @@ class CoreCommands(commands.Cog):
             f"https://api.roblox.com/users/{usercheck}{username}"
         ) as c:
             info = await c.json()
-            if "errorMessage" in info:
+            if "errorMessage" in info or "errors" in info:
                 return False
             else:
                 return info["Username"]
