@@ -209,7 +209,7 @@ class CoreCommands(commands.Cog):
         results = dcresults["cards"] + csresults["cards"]
         if not results:
             await ctx.send(
-                "No search results found, please specify a term in text you wish to search for, or search without an argument."
+                "No search results found."
             )
             return
         embeds = []
@@ -368,7 +368,7 @@ class CoreCommands(commands.Cog):
         search = await self.search_by_discord(ctx.author)
         if search is None:
             await ctx.send(
-                "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account or verifying with Rover or Bloxlink."
+                "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account, verifying with Rover or Bloxlink, or using the `?search`."
             )
             return
         message = await ctx.send("Retriving case info...")
