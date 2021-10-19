@@ -26,7 +26,7 @@ class CoreCommands(commands.Cog):
         return embed
 
     async def roblox_api_search(self, username: str, searchid=False):
-        usercheck = "get-by-username?username=" if searchid is True else ""
+        usercheck = "get-by-username?username=" if searchid is False else ""
         async with self.bot.session.get(
             f"https://api.roblox.com/users/{usercheck}{username}"
         ) as c:
