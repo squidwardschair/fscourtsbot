@@ -37,24 +37,23 @@ class CoreCommands(commands.Cog):
                 return info["Username"]
 
     async def search_by_discord(self, member: discord.Member):
-        async with self.bot.session.get(
-            f"https://verify.eryn.io/api/user/{member.id}"
-        ) as c:
+        verifyname=None
+        async with self.bot.session.get(f"https://verify.eryn.io/api/user/{member.id}") as c:
             info = await c.json()
             if info["status"] == "ok":
-                return info["robloxUsername"]
+                verifyname = info["robloxId"]
             else:
                 pass
-        async with self.bot.session.get(
-            f"https://api.blox.link/v1/user/{member.id}"
-        ) as c:
+        async with self.bot.session.get(f"https://api.blox.link/v1/user/{member.id}") as c:
             info = await c.json()
             if info["status"] == "ok":
-                rcheck = await self.roblox_api_search(info["primaryAccount"], True)
-                if rcheck is not False:
-                    return rcheck
+                verifyname=info["primaryAccount"]
             else:
                 pass
+        if verifyname is not None:
+            rcheck = await self.roblox_api_search(verifyname, True)
+            if rcheck is not False:
+                return rcheck
         if member.nick:
             rcheck = await self.roblox_api_search(member.nick)
             if rcheck is not False:
@@ -253,7 +252,7 @@ class CoreCommands(commands.Cog):
                 )
             embeds.append(embed)
         if not embeds:
-            await ctx.send("No search results found!")
+            await ctx.send("No search results found.")
             return
         await ButtonPaginate(ctx, embeds, ctx.author)
 
