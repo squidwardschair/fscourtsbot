@@ -193,7 +193,7 @@ class CoreCommands(commands.Cog):
                     + datetime.timedelta(days=diff)
                     + datetime.timedelta(days=15)
                 )
-                etadelta = discord.utils.utcnow() - etadate
+                etadelta = etadate - discord.utils.utcnow()
                 saying = f" It is likely that your expungement will be processed within approximately **{etadelta.days} days** (before __{etadate.strftime('%m/%d/%Y')}__)"
         return {
             "position": pos,
