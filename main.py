@@ -43,6 +43,15 @@ class CourtsBot(commands.Bot):
             else:
                 return True
 
+    async def check_roblox(self):
+        async with self.session.get(
+            "https://api.roblox.com/users/get-by-username?username=ElloNT"
+        ) as r:
+            if r.status != 200:
+                return False
+            else:
+                return True
+
     def run_bot(self):
         p = pathlib.Path("./")
         count = 0

@@ -37,17 +37,21 @@ class CoreCommands(commands.Cog):
                 return info["Username"]
 
     async def search_by_discord(self, member: discord.Member):
-        verifyname=None
-        async with self.bot.session.get(f"https://verify.eryn.io/api/user/{member.id}") as c:
+        verifyname = None
+        async with self.bot.session.get(
+            f"https://verify.eryn.io/api/user/{member.id}"
+        ) as c:
             info = await c.json()
             if info["status"] == "ok":
                 verifyname = info["robloxId"]
             else:
                 pass
-        async with self.bot.session.get(f"https://api.blox.link/v1/user/{member.id}") as c:
+        async with self.bot.session.get(
+            f"https://api.blox.link/v1/user/{member.id}"
+        ) as c:
             info = await c.json()
             if info["status"] == "ok":
-                verifyname=info["primaryAccount"]
+                verifyname = info["primaryAccount"]
             else:
                 pass
         if verifyname is not None:
@@ -189,7 +193,8 @@ class CoreCommands(commands.Cog):
                     + datetime.timedelta(days=diff)
                     + datetime.timedelta(days=15)
                 )
-                saying = f" The estimated time length until the expungement is heard from the date it was filed is `{diff} days`. It is likely that your expungement will be processed on or after approximately **{etadate.strftime('%m/%d/%Y')}**."
+                etadelta = discord.utils.utcnow() - etadate
+                saying = f" It is likely that your expungement will be processed within approximately **{etadelta.days} days** (before __{etadate.strftime('%m/%d/%Y')}__)"
         return {
             "position": pos,
             "maxposition": i,
@@ -207,10 +212,7 @@ class CoreCommands(commands.Cog):
             csresults = await c.json()
         results = dcresults["cards"] + csresults["cards"]
         if not results:
-            await ctx.send(
-                "No search results found."
-            )
-            return
+            return False
         embeds = []
         badlists = [
             "593b1c65cf948f5ef96fe2bc",
@@ -252,8 +254,7 @@ class CoreCommands(commands.Cog):
                 )
             embeds.append(embed)
         if not embeds:
-            await ctx.send("No search results found.")
-            return
+            return False
         await ButtonPaginate(ctx, embeds, ctx.author)
 
     @tasks.loop(minutes=2)
@@ -261,13 +262,19 @@ class CoreCommands(commands.Cog):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
             return
-        async with self.bot.session.get("https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards") as d:
+        async with self.bot.session.get(
+            "https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards"
+        ) as d:
             dcinfo = await d.json()
-        async with self.bot.session.get("https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards") as c:
+        async with self.bot.session.get(
+            "https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards"
+        ) as c:
             csinfo = await c.json()
         cards = []
         for dcard in dcinfo:
-            async with self.bot.session.get(f"https://trello.com/c/{dcard['shortLink']}.json") as t:
+            async with self.bot.session.get(
+                f"https://trello.com/c/{dcard['shortLink']}.json"
+            ) as t:
                 cardinfo = await t.json()
             for option in cardinfo["customFieldItems"]:
                 if "idValue" in option:
@@ -350,8 +357,11 @@ class CoreCommands(commands.Cog):
             await ctx.send("Search term too short.")
             return
         message = await ctx.send("Retriving case info...")
-        await self.run_search(ctx, query)
+        getsearch = await self.run_search(ctx, query)
         await message.delete()
+        if getsearch is False:
+            await ctx.send("No search results were found with your search query.")
+            return
 
     @commands.command(
         name="caseinfo",
@@ -361,8 +371,12 @@ class CoreCommands(commands.Cog):
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     async def caseinfo(self, ctx):
         checktrello = await self.bot.check_trello()
+        checkroblox = await self.bot.check_roblox()
         if checktrello is False:
             await ctx.send("Trello is currently down, please try again later.")
+            return
+        if checkroblox is False:
+            await ctx.send("ROBLOX is currently down, therefore we can't connect you to a ROBLOX account. Please use the search command for now.")
             return
         search = await self.search_by_discord(ctx.author)
         if search is None:
@@ -371,8 +385,13 @@ class CoreCommands(commands.Cog):
             )
             return
         message = await ctx.send("Retriving case info...")
-        await self.run_search(ctx, search)
+        getsearch = await self.run_search(ctx, search)
         await message.delete()
+        if getsearch is False:
+            await ctx.send(
+                f"No search results found using search query __{search}__. If this isn't your ROBLOX username, this may because you verified with a different account on Rover or Bloxlink, or your Discord name/nickname isn't your ROBLOX username. Try using the search command and provide your own query."
+            )
+            return
 
     @commands.command(
         name="botinfo",
