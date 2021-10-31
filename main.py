@@ -48,7 +48,11 @@ class CourtsBot(commands.Bot):
             "https://api.roblox.com/users/get-by-username?username=ElloNT"
         ) as r:
             if r.status != 200:
-                return False
+                try:
+                    await r.json()
+                    return True
+                except:
+                    return False
             else:
                 return True
 
