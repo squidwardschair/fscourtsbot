@@ -348,19 +348,19 @@ class CoreCommands(commands.Cog):
     async def search(self, ctx, *, query: str = None):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
-            await ctx.send("Trello is currently down, please try again later.")
+            await ctx.reply("Trello is currently down, please try again later.")
             return
         if query is None:
-            await ctx.send("Provide a search term for me to search for.")
+            await ctx.reply("Provide a search term for me to search for.")
             return
         if len(query) < 3:
-            await ctx.send("Search term too short.")
+            await ctx.reply("Search term too short.")
             return
-        message = await ctx.send("Retriving case info...")
+        message = await ctx.reply("Retriving case info...")
         getsearch = await self.run_search(ctx, query)
         await message.delete()
         if getsearch is False:
-            await ctx.send("No search results were found with your search query.")
+            await ctx.reply("No search results were found with your search query.")
             return
 
     @commands.command(
@@ -373,30 +373,30 @@ class CoreCommands(commands.Cog):
         checktrello = await self.bot.check_trello()
         checkroblox = await self.bot.check_roblox()
         if checktrello is False:
-            await ctx.send("Trello is currently down, please try again later.")
+            await ctx.reply("Trello is currently down, please try again later.")
             return
         if checkroblox is False:
-            await ctx.send(
+            await ctx.reply(
                 "ROBLOX is currently down, therefore we can't connect you to a ROBLOX account. Please use the search command for now."
             )
             return
         try:
             search = await self.search_by_discord(ctx.author)
         except:
-            await ctx.send(
+            await ctx.reply(
                 "ROBLOX is currently down, therefore we cannot cannot connect you to a ROBLOX account. Try using the search command with your own query"
             )
             return
         if search is None:
-            await ctx.send(
+            await ctx.reply(
                 "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account, verifying with Rover or Bloxlink, or using the `?search`."
             )
             return
-        message = await ctx.send("Retriving case info...")
+        message = await ctx.reply("Retriving case info...")
         getsearch = await self.run_search(ctx, search)
         await message.delete()
         if getsearch is False:
-            await ctx.send(
+            await ctx.reply(
                 f"No search results found using search query __{search}__. If this isn't your ROBLOX username, this may because you verified with a different account on Rover or Bloxlink, or your Discord name/nickname isn't your ROBLOX username. Try using the search command and provide your own query."
             )
             return
@@ -409,7 +409,7 @@ class CoreCommands(commands.Cog):
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
     async def botinfo(self, ctx):
         starttime = time.perf_counter()
-        msg = await ctx.send("Retriving bot info...")
+        msg = await ctx.reply("Retriving bot info...")
         enddtime = time.perf_counter()
         getuptime = discord.utils.utcnow() - self.bot.uptime
         hours, remainder = divmod(int(getuptime.total_seconds()), 3600)
@@ -446,16 +446,16 @@ class CoreCommands(commands.Cog):
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
     async def reload(self, ctx, cog_name=None):
         if cog_name == None:
-            await ctx.send("Provide a cog for me to reload!")
+            await ctx.reply("Provide a cog for me to reload!")
             return
         try:
             self.bot.reload_extension(cog_name)
-            await ctx.send(f"🔄 {cog_name} successfuly reloaded!")
+            await ctx.reply(f"🔄 {cog_name} successfuly reloaded!")
         except commands.errors.ExtensionNotFound:
-            await ctx.send(f"I did not find a cog named {cog_name}.")
+            await ctx.reply(f"I did not find a cog named {cog_name}.")
             return
         except commands.errors.ExtensionNotLoaded:
-            await ctx.send(f"I did not find a cog named {cog_name}.")
+            await ctx.reply(f"I did not find a cog named {cog_name}.")
             return
 
     @commands.command(
@@ -467,7 +467,7 @@ class CoreCommands(commands.Cog):
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
     async def reloadlists(self, ctx):
         await self.bot.reload_lists()
-        await ctx.send("Trello list data successfully reloaded.")
+        await ctx.reply("Trello list data successfully reloaded.")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):
@@ -507,7 +507,7 @@ class CoreCommands(commands.Cog):
             )
             await self.bot.owner.send(embed=badmsg)
 
-        await ctx.send(embed=message)
+        await ctx.reply(embed=message)
 
 
 def setup(bot):
