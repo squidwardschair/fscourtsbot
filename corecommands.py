@@ -376,12 +376,16 @@ class CoreCommands(commands.Cog):
             await ctx.send("Trello is currently down, please try again later.")
             return
         if checkroblox is False:
-            await ctx.send("ROBLOX is currently down, therefore we can't connect you to a ROBLOX account. Please use the search command for now.")
+            await ctx.send(
+                "ROBLOX is currently down, therefore we can't connect you to a ROBLOX account. Please use the search command for now."
+            )
             return
         try:
             search = await self.search_by_discord(ctx.author)
         except:
-            await ctx.send("ROBLOX is currently down, therefore we cannot cannot connect you to a ROBLOX account. Try using the search command with your own query")
+            await ctx.send(
+                "ROBLOX is currently down, therefore we cannot cannot connect you to a ROBLOX account. Try using the search command with your own query"
+            )
             return
         if search is None:
             await ctx.send(
@@ -491,6 +495,22 @@ class CoreCommands(commands.Cog):
             await self.bot.owner.send(embed=badmsg)
 
         await ctx.send(embed=message)
+
+    @commands.command(
+        name="reloadlists",
+        help="Reloads the bots list data",
+        brief="Reloads the bots list data",
+    )
+    @commands.is_owner()
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
+    async def reloadlists(self, ctx):
+        for board in self.bot.boardids:
+            async with self.bot.session.get(
+                f"https://api.trello.com/1/boards/{board}/lists"
+            ) as b:
+                info = await b.json()
+            for list in info:
+                self.bot.lists[list["id"]] = list["name"]
 
 
 def setup(bot):
