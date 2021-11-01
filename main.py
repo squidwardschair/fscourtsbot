@@ -56,6 +56,15 @@ class CourtsBot(commands.Bot):
             else:
                 return True
 
+    async def reload_lists(self):
+        for board in self.boardids:
+            async with self.session.get(
+                f"https://api.trello.com/1/boards/{board}/lists"
+            ) as b:
+                info = await b.json()
+            for list in info:
+                self.lists[list["id"]] = list["name"]
+
     def run_bot(self):
         p = pathlib.Path("./")
         count = 0
@@ -169,13 +178,7 @@ async def on_ready():
             info = await i.json()
         for option in info["options"]:
             bot.customfields[option["id"]] = [info["name"], option["value"]["text"]]
-    for board in bot.boardids:
-        async with bot.session.get(
-            f"https://api.trello.com/1/boards/{board}/lists"
-        ) as b:
-            info = await b.json()
-        for list in info:
-            bot.lists[list["id"]] = list["name"]
+    await bot.reload_lists()
     async with bot.session.get(
         f"https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards"
     ) as c:

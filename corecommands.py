@@ -466,13 +466,7 @@ class CoreCommands(commands.Cog):
     @commands.is_owner()
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
     async def reloadlists(self, ctx):
-        for board in self.bot.boardids:
-            async with self.bot.session.get(
-                f"https://api.trello.com/1/boards/{board}/lists"
-            ) as b:
-                info = await b.json()
-            for list in info:
-                self.bot.lists[list["id"]] = list["name"]
+        await self.bot.reload_lists()
         await ctx.send("Trello list data successfully reloaded.")
 
     @commands.Cog.listener()
