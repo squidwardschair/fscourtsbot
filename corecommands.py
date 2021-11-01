@@ -511,7 +511,7 @@ class CoreCommands(commands.Cog):
                 info = await b.json()
             for list in info:
                 self.bot.lists[list["id"]] = list["name"]
-
+        await ctx.send("Trello list data successfully reloaded.")
 
 def setup(bot):
     bot.add_cog(CoreCommands(bot))
