@@ -93,7 +93,7 @@ class CourtHelp(commands.HelpCommand):
         emojis = {"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚"}
         filtercommands = await self.filter_commands(ctx.bot.commands, sort=True)
         for command in filtercommands:
-            if command.name == "reload":
+            if command.name == "reload" or command.name == "reloadlists":
                 continue
             embed.add_field(
                 name=self.get_command_signature(command), value=command.brief

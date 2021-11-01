@@ -458,6 +458,23 @@ class CoreCommands(commands.Cog):
             await ctx.send(f"I did not find a cog named {cog_name}.")
             return
 
+    @commands.command(
+        name="reloadlists",
+        help="Reloads the bots list data",
+        brief="Reloads the bots list data",
+    )
+    @commands.is_owner()
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
+    async def reloadlists(self, ctx):
+        for board in self.bot.boardids:
+            async with self.bot.session.get(
+                f"https://api.trello.com/1/boards/{board}/lists"
+            ) as b:
+                info = await b.json()
+            for list in info:
+                self.bot.lists[list["id"]] = list["name"]
+        await ctx.send("Trello list data successfully reloaded.")
+
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):
         error = getattr(error, "original", error)
@@ -483,6 +500,8 @@ class CoreCommands(commands.Cog):
                 title="No Permissions",
                 description="I am missing the required permissions to perform this command!",
             )
+        elif isinstance(error, commands.NotOwner):
+            message = discord.Embed(title="lol no", description="only 4 owner")
         else:
             badmsg = discord.Embed(
                 title=f"Unknown Error, args: {ctx.args}, kwargs: {ctx.kwargs}",
@@ -496,22 +515,6 @@ class CoreCommands(commands.Cog):
 
         await ctx.send(embed=message)
 
-    @commands.command(
-        name="reloadlists",
-        help="Reloads the bots list data",
-        brief="Reloads the bots list data",
-    )
-    @commands.is_owner()
-    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
-    async def reloadlists(self, ctx):
-        for board in self.bot.boardids:
-            async with self.bot.session.get(
-                f"https://api.trello.com/1/boards/{board}/lists"
-            ) as b:
-                info = await b.json()
-            for list in info:
-                self.bot.lists[list["id"]] = list["name"]
-        await ctx.send("Trello list data successfully reloaded.")
 
 def setup(bot):
     bot.add_cog(CoreCommands(bot))
