@@ -305,7 +305,7 @@ class CoreCommands(commands.Cog):
                 continue
             embed = await self.build_embed(buildcard)
             embed.set_author(
-                name=f"Your case has been ruled on", icon_url=getmem.avatar.url
+                name=f"Your case has been ruled on", icon_url=getmem.display_avatar.url
             )
             desc = f"`This is an automated message from the Firestone Courts involving a case you've filed. Any bugs or false information in this message should be reported to MrApples#2555`\nOn {buildcard['time']}, you "
             if "Trial" in buildcard:
