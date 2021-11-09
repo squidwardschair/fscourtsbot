@@ -1,7 +1,7 @@
 import datetime
 import discord
 from discord.ext import tasks, commands
-from buttonpaginator import ButtonPaginate
+from buttonpaginator import ButtonPaginator
 from dateutil import parser
 import traceback
 import time
@@ -255,7 +255,7 @@ class CoreCommands(commands.Cog):
             embeds.append(embed)
         if not embeds:
             return False
-        await ButtonPaginate(ctx, embeds, ctx.author)
+        await ButtonPaginator.ButtonPaginate(ctx, embeds, ctx.author)
 
     async def search_trello(self):
         async with self.bot.session.get(
@@ -279,7 +279,7 @@ class CoreCommands(commands.Cog):
         for cscard in csinfo:
             cards.append(cscard["shortLink"])
         return cards
-        
+
     @tasks.loop(minutes=2)
     async def checklist(self):
         checktrello = await self.bot.check_trello()
