@@ -15,11 +15,11 @@ class ButtonPaginator(discord.ui.View):
             )
     
     @classmethod
-    async def ButtonPaginate(cls, ctx, embeds, initiator):
+    async def ButtonPaginate(cls, ctx, embeds):
         if len(embeds) == 1:
             await ctx.send(embed=embeds[0])
             return
-        view = cls(embeds, initiator)
+        view = cls(embeds, ctx.author)
         view.message = await ctx.reply(embed=embeds[0], view=view)
         return view
 

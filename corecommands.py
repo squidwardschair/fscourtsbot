@@ -255,7 +255,7 @@ class CoreCommands(commands.Cog):
             embeds.append(embed)
         if not embeds:
             return False
-        await ButtonPaginator.ButtonPaginate(ctx, embeds, ctx.author)
+        await ButtonPaginator.ButtonPaginate(ctx, embeds)
 
     async def search_trello(self):
         async with self.bot.session.get(
