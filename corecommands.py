@@ -5,7 +5,7 @@ from buttonpaginator import ButtonPaginate
 from dateutil import parser
 import traceback
 import time
-from psutil import Process, cpu_percent
+from psutil import Process
 from os import getpid
 
 
@@ -257,11 +257,7 @@ class CoreCommands(commands.Cog):
             return False
         await ButtonPaginate(ctx, embeds, ctx.author)
 
-    @tasks.loop(minutes=2)
-    async def checklist(self):
-        checktrello = await self.bot.check_trello()
-        if checktrello is False:
-            return
+    async def search_trello(self):
         async with self.bot.session.get(
             "https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards"
         ) as d:
@@ -279,20 +275,26 @@ class CoreCommands(commands.Cog):
             for option in cardinfo["customFieldItems"]:
                 if "idValue" in option:
                     if option["idValue"] == "5b3a95425b951686400f76b0":
-                        cards.append(dcard["shortLink"])
+                        cards.append(dcard["shortLink"]) 
         for cscard in csinfo:
             cards.append(cscard["shortLink"])
+        return cards
+        
+    @tasks.loop(minutes=2)
+    async def checklist(self):
+        checktrello = await self.bot.check_trello()
+        if checktrello is False:
+            return
+        cards=await self.search_trello()
         if self.bot.cardlist is None:
             self.bot.cardlist = cards
             return
         if self.bot.cardlist:
-            newcards = [card for card in cards if card not in self.bot.cardlist]
-        else:
-            newcards = cards
+            cards = [card for card in cards if card not in self.bot.cardlist]
         fakecontext = discord.Object(id=0)
         fakecontext.bot = self.bot
         fakecontext.guild = self.bot.guild
-        for c in newcards:
+        for c in cards:
             buildcard = await self.build_card_info(c)
             if buildcard["discord"] is None:
                 searchquery = buildcard["roblox"]

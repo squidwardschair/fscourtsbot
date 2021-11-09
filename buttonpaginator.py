@@ -13,6 +13,15 @@ class ButtonPaginator(discord.ui.View):
             e.set_footer(
                 text=f"({self.embeds.index(e)+1}/{len(self.embeds)})  {'' if e.footer.text == discord.Embed.Empty else '• '+ e.footer.text}"
             )
+    
+    @classmethod
+    async def ButtonPaginate(cls, ctx, embeds, initiator):
+        if len(embeds) == 1:
+            await ctx.send(embed=embeds[0])
+            return
+        view = cls(embeds, initiator)
+        view.message = await ctx.reply(embed=embeds[0], view=view)
+        return view
 
     async def interaction_check(self, interaction):
         if interaction.user.id != self.initiator.id:
@@ -57,15 +66,6 @@ class ButtonPaginator(discord.ui.View):
     @discord.ui.button(emoji="🛑")
     async def stop(self, button: discord.Button, interaction=discord.Interaction):
         await self.message.edit(view=None)
-
-
-async def ButtonPaginate(ctx, embeds, initiator):
-    if len(embeds) == 1:
-        await ctx.send(embed=embeds[0])
-        return
-    view = ButtonPaginator(embeds, initiator)
-    view.message = await ctx.reply(embed=embeds[0], view=view)
-
 
 class HelpSelect(discord.ui.Select):
     def __init__(self, embeddict, initiator):
