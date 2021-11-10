@@ -26,7 +26,14 @@ class CourtsBot(commands.Bot):
         self.guild = None
         self.owner = None
         self.loc = None
-
+        self.cfitems= [
+        "5c3bcd0f80f20614a4c72093",
+        "5b08b5face269325c8ed581d",
+        "5b06d74758c55f9759d896df",
+        "5b06d1c81e3ecc5e2f288da7",
+        "5bca6f3c24afea5d2b007136",
+        "5c54684b92c5f91774896b08",
+        ]
     async def close(self):
         await self.session.close()
         await super().close()
@@ -163,15 +170,7 @@ async def on_ready():
         await bot.owner.send("trello is down auto shutdown")
         print("trello is down")
         await bot.close()
-    cfitems = [
-        "5c3bcd0f80f20614a4c72093",
-        "5b08b5face269325c8ed581d",
-        "5b06d74758c55f9759d896df",
-        "5b06d1c81e3ecc5e2f288da7",
-        "5bca6f3c24afea5d2b007136",
-        "5c54684b92c5f91774896b08",
-    ]
-    for item in cfitems:
+    for item in bot.cfitems:
         async with bot.session.get(
             f"https://api.trello.com/1/customFields/{item}"
         ) as i:
