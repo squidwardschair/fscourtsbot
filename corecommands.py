@@ -27,7 +27,7 @@ class CoreCommands(commands.Cog):
         self, username: str, searchid=False
     ) -> Union[bool, str]:
         usercheck = "get-by-username?username=" if searchid is False else ""
-        info=await self.bot.getreq_json(f"https://api.roblox.com/users/{usercheck}{username}")
+        info = await self.bot.getreq_json(f"https://api.roblox.com/users/{usercheck}{username}")
         if "errorMessage" in info or "errors" in info:
             return False
         else:
@@ -35,11 +35,11 @@ class CoreCommands(commands.Cog):
 
     async def search_by_discord(self, member: discord.Member) -> Union[str, bool]:
         verifyname = None
-        info=await self.bot.getreq_json(f"https://verify.eryn.io/api/user/{member.id}")
+        info = await self.bot.getreq_json(f"https://verify.eryn.io/api/user/{member.id}")
         if info["status"] == "ok":
             verifyname = info["robloxId"]
         else:
-            moreinfo=await self.bot.getreq_json(f"https://api.blox.link/v1/user/{member.id}")
+            moreinfo = await self.bot.getreq_json(f"https://api.blox.link/v1/user/{member.id}")
             if info["status"] == "ok":
                 verifyname = moreinfo["primaryAccount"]
         if verifyname is not None:
@@ -85,7 +85,7 @@ class CoreCommands(commands.Cog):
         await self.bot.session.post("https://api.trello.com/1/cards", data=body)
 
     async def build_card_info(self, cardid: str) -> dict:
-        info=await self.bot.getreq_json(f"https://trello.com/c/{cardid}.json")
+        info = await self.bot.getreq_json(f"https://trello.com/c/{cardid}.json")
         customfields = []
         title: str = info["name"]
         comments = [
@@ -188,7 +188,7 @@ class CoreCommands(commands.Cog):
             await self.add_to_hecxtro(cardinfo)
 
     async def find_expungement_pos(self, carddata: dict) -> Union[bool, dict]:
-        info=await self.bot.getreq_json("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards")
+        info = await self.bot.getreq_json("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards")
         badcount = 0
         pos = None
         first = False
@@ -205,8 +205,8 @@ class CoreCommands(commands.Cog):
         if pos == 1:
             saying = False
         else:
-            timeinfo=await self.bot.getreq_json(f"https://trello.com/c/{first}.json")
-            currentinfo=await self.bot.getreq_json(f"https://trello.com/c/{carddata['shortLink']}.json")
+            timeinfo = await self.bot.getreq_json(f"https://trello.com/c/{first}.json")
+            currentinfo = await self.bot.getreq_json(f"https://trello.com/c/{carddata['shortLink']}.json")
             firstdate = parser.parse(timeinfo["actions"][-1]["date"])
             carddate = parser.parse(currentinfo["actions"][-1]["date"])
             objdiff = discord.utils.utcnow() - firstdate
@@ -228,8 +228,8 @@ class CoreCommands(commands.Cog):
         }
 
     async def run_search(self, ctx, search) -> bool:
-        dcresults=await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d')
-        csresults=await self.bot.getreq_json('https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09')
+        dcresults = await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d')
+        csresults = await self.bot.getreq_json('https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09')
         results = dcresults["cards"] + csresults["cards"]
         if not results:
             return False
@@ -279,11 +279,11 @@ class CoreCommands(commands.Cog):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
             return
-        dcinfo=await self.bot.getreq_json("https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards")
-        csinfo=await self.bot.getreq_json("https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards")
+        dcinfo = await self.bot.getreq_json("https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards")
+        csinfo = await self.bot.getreq_json("https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards")
         cards = []
         for dcard in dcinfo:
-            cardinfo=await self.bot.getreq_json("https://trello.com/c/{dcard['shortLink']}.json")
+            cardinfo = await self.bot.getreq_json("https://trello.com/c/{dcard['shortLink']}.json")
             for option in cardinfo["customFieldItems"]:
                 if (
                     "idValue" in option
@@ -296,7 +296,8 @@ class CoreCommands(commands.Cog):
             self.bot.cardlist = cards
             return
         if self.bot.cardlist:
-            newcards = [card for card in cards if card not in self.bot.cardlist]
+            newcards = [
+                card for card in cards if card not in self.bot.cardlist]
         else:
             newcards = cards
         fakecontext = discord.Object(id=0)
@@ -446,7 +447,8 @@ class CoreCommands(commands.Cog):
             name="Memory Usage",
             value=f"{round(Process(getpid()).memory_info().rss/1024/1024, 2)} MB",
         )
-        embed.add_field(name="CPU Usage", value=f"{Process(getpid()).cpu_percent()}%")
+        embed.add_field(name="CPU Usage",
+                        value=f"{Process(getpid()).cpu_percent()}%")
         embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
         await msg.delete()
         await ctx.reply(embed=embed)
@@ -480,7 +482,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.guild)
     async def expungify_cmd(self, ctx: commands.Context, *, flags: MoveFlags):
-        cards=await self.bot.getreq_json("https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards")
+        cards = await self.bot.getreq_json("https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards")
         if not cards:
             await ctx.send(
                 "There are no cards to expungify, make sure you moved all cards you want to process into the `Prepare For Expungement` list before running this command."

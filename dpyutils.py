@@ -179,8 +179,10 @@ class CourtHelp(commands.HelpCommand):
             timestamp=discord.utils.utcnow(),
             color=discord.Color.teal(),
         )
-        embeds = {"Main Help Page": ["The main page for the help command", "🔷", embed]}
-        emojis = {"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚", "expungify": "〽️"}
+        embeds = {"Main Help Page": [
+            "The main page for the help command", "🔷", embed]}
+        emojis = {"search": "🔍", "botinfo": "ℹ️",
+                  "caseinfo": "📚", "expungify": "〽️"}
         filtercommands: List[commands.Command] = await self.filter_commands(
             ctx.bot.commands, sort=True
         )
@@ -195,7 +197,8 @@ class CourtHelp(commands.HelpCommand):
                 emojis[command.name],
                 await self.send_command_help(command, fake=True),
             ]
-        embed.set_author(name=str(ctx.author), icon_url=ctx.author.display_avatar.url)
+        embed.set_author(name=str(ctx.author),
+                         icon_url=ctx.author.display_avatar.url)
         embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
         embed.set_thumbnail(url=ctx.me.display_avatar.url)
         view = HelpView(embeds, ctx.author)
@@ -222,8 +225,10 @@ class CourtHelp(commands.HelpCommand):
                 name="Cooldown", value=f"{cooldown.per:.0f} seconds", inline=True
             )
         if command.aliases:
-            embed.add_field(name="Alias", value=",".join(command.aliases), inline=True)
-        embed.set_author(name=str(ctx.author), icon_url=ctx.author.display_avatar.url)
+            embed.add_field(name="Alias", value=",".join(
+                command.aliases), inline=True)
+        embed.set_author(name=str(ctx.author),
+                         icon_url=ctx.author.display_avatar.url)
         embed.set_thumbnail(url=ctx.me.display_avatar.url)
         embed.set_footer(
             text=f"Do {ctx.clean_prefix}help for more information | <> is required | [] is optional"
