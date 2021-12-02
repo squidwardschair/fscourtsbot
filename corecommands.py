@@ -562,7 +562,7 @@ class CoreCommands(commands.Cog):
             )
         elif isinstance(error, (commands.BadArgument, commands.MissingRequiredArgument)):
             message = await CourtHelp().send_command_help(ctx.command, fake=True, context=ctx)
-        elif isinstance(error, commands.CommandNotFound):
+        elif isinstance(error, (commands.CommandNotFound, commands.CheckFailure)):
             return
         elif isinstance(error, discord.errors.Forbidden):
             message = discord.Embed(
