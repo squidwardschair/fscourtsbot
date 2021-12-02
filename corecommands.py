@@ -27,29 +27,21 @@ class CoreCommands(commands.Cog):
         self, username: str, searchid=False
     ) -> Union[bool, str]:
         usercheck = "get-by-username?username=" if searchid is False else ""
-        async with self.bot.session.get(
-            f"https://api.roblox.com/users/{usercheck}{username}"
-        ) as c:
-            info = await c.json()
-            if "errorMessage" in info or "errors" in info:
-                return False
-            else:
-                return info["Username"]
+        info=await self.bot.getreq_json(f"https://api.roblox.com/users/{usercheck}{username}")
+        if "errorMessage" in info or "errors" in info:
+            return False
+        else:
+            return info["Username"]
 
     async def search_by_discord(self, member: discord.Member) -> Union[str, bool]:
         verifyname = None
-        async with self.bot.session.get(
-            f"https://verify.eryn.io/api/user/{member.id}"
-        ) as c:
-            info = await c.json()
+        info=await self.bot.getreq_json(f"https://verify.eryn.io/api/user/{member.id}")
+        if info["status"] == "ok":
+            verifyname = info["robloxId"]
+        else:
+            moreinfo=await self.bot.getreq_json(f"https://api.blox.link/v1/user/{member.id}")
             if info["status"] == "ok":
-                verifyname = info["robloxId"]
-        async with self.bot.session.get(
-            f"https://api.blox.link/v1/user/{member.id}"
-        ) as c:
-            info = await c.json()
-            if info["status"] == "ok":
-                verifyname = info["primaryAccount"]
+                verifyname = moreinfo["primaryAccount"]
         if verifyname is not None:
             rcheck = await self.roblox_api_search(verifyname, True)
             if rcheck is not False:
@@ -93,8 +85,7 @@ class CoreCommands(commands.Cog):
         await self.bot.session.post("https://api.trello.com/1/cards", data=body)
 
     async def build_card_info(self, cardid: str) -> dict:
-        async with self.bot.session.get(f"https://trello.com/c/{cardid}.json") as t:
-            info = await t.json()
+        info=await self.bot.getreq_json(f"https://trello.com/c/{cardid}.json")
         customfields = []
         title: str = info["name"]
         comments = [
@@ -197,10 +188,7 @@ class CoreCommands(commands.Cog):
             await self.add_to_hecxtro(cardinfo)
 
     async def find_expungement_pos(self, carddata: dict) -> Union[bool, dict]:
-        async with self.bot.session.get(
-            "https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards"
-        ) as p:
-            info = await p.json()
+        info=await self.bot.getreq_json("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards")
         badcount = 0
         pos = None
         first = False
@@ -217,12 +205,8 @@ class CoreCommands(commands.Cog):
         if pos == 1:
             saying = False
         else:
-            async with self.bot.session.get(f"https://trello.com/c/{first}.json") as t:
-                timeinfo = await t.json()
-            async with self.bot.session.get(
-                f"https://trello.com/c/{carddata['shortLink']}.json"
-            ) as c:
-                currentinfo = await c.json()
+            timeinfo=await self.bot.getreq_json(f"https://trello.com/c/{first}.json")
+            currentinfo=await self.bot.getreq_json(f"https://trello.com/c/{carddata['shortLink']}.json")
             firstdate = parser.parse(timeinfo["actions"][-1]["date"])
             carddate = parser.parse(currentinfo["actions"][-1]["date"])
             objdiff = discord.utils.utcnow() - firstdate
@@ -244,14 +228,8 @@ class CoreCommands(commands.Cog):
         }
 
     async def run_search(self, ctx, search) -> bool:
-        async with self.bot.session.get(
-            f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d'
-        ) as d:
-            dcresults = await d.json()
-        async with self.bot.session.get(
-            f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09'
-        ) as c:
-            csresults = await c.json()
+        dcresults=await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d')
+        csresults=await self.bot.getreq_json('https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09')
         results = dcresults["cards"] + csresults["cards"]
         if not results:
             return False
@@ -301,20 +279,11 @@ class CoreCommands(commands.Cog):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
             return
-        async with self.bot.session.get(
-            "https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards"
-        ) as d:
-            dcinfo = await d.json()
-        async with self.bot.session.get(
-            "https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards"
-        ) as c:
-            csinfo = await c.json()
+        dcinfo=await self.bot.getreq_json("https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards")
+        csinfo=await self.bot.getreq_json("https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards")
         cards = []
         for dcard in dcinfo:
-            async with self.bot.session.get(
-                f"https://trello.com/c/{dcard['shortLink']}.json"
-            ) as t:
-                cardinfo = await t.json()
+            cardinfo=await self.bot.getreq_json("https://trello.com/c/{dcard['shortLink']}.json")
             for option in cardinfo["customFieldItems"]:
                 if (
                     "idValue" in option
@@ -511,10 +480,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.guild)
     async def expungify_cmd(self, ctx: commands.Context, *, flags: MoveFlags):
-        async with self.bot.session.get(
-            "https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards"
-        ) as c:
-            cards = await c.json()
+        cards=await self.bot.getreq_json("https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards")
         if not cards:
             await ctx.send(
                 "There are no cards to expungify, make sure you moved all cards you want to process into the `Prepare For Expungement` list before running this command."

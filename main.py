@@ -86,7 +86,11 @@ class CourtsBot(commands.Bot):
         self.load_extension("corecommands")
         self.run(config.TOKEN)
 
-
+    async def getreq_json(self, url:str):
+        async with self.session.get(url) as i:
+            info=await i.json()
+        return info
+        
 bot = CourtsBot()
 
 
@@ -100,17 +104,11 @@ async def on_ready():
         print("trello is down")
         await bot.close()
     for item in bot.cfitems:
-        async with bot.session.get(
-            f"https://api.trello.com/1/customFields/{item}"
-        ) as i:
-            info = await i.json()
+        info=await bot.getreq_json(f"https://api.trello.com/1/customFields/{item}")
         for option in info["options"]:
             bot.customfields[option["id"]] = [info["name"], option["value"]["text"]]
     await bot.reload_lists()
-    async with bot.session.get(
-        "https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards"
-    ) as c:
-        cinfo = await c.json()
+    cinfo=await bot.getreq_json("https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards")
     for member in cinfo:
         memname: str = member["name"]
         if memname == "---":
@@ -118,10 +116,7 @@ async def on_ready():
         getname = memname.split(" ")
         bot.memids[getname[-1].lower()] = [member["idMembers"][0]]
         bot.members[member["idMembers"][0]] = getname[-1]
-    async with bot.session.get(
-        "https://api.trello.com/1/boards/593b1c584d118d054065481d/lists"
-    ) as l:
-        lists = await l.json()
+    lists=await bot.getreq_json("https://api.trello.com/1/boards/593b1c584d118d054065481d/lists")
     for ls in lists:
         name: str = ls["name"]
         if " " not in name:
