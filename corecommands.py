@@ -2,13 +2,13 @@ import datetime
 from typing import Union
 import discord
 from discord.ext import tasks, commands
-from dpyutils import ButtonPaginator, MoveFlags, button_confirm
+from dpyutils import ButtonPaginator, MoveFlags, CourtHelp, button_confirm
 from dateutil import parser
 import traceback
 import time
 from psutil import Process
 from os import getpid
-from main import CourtsBot
+from main import CourtsBot, on_ready
 import config
 import random
 from datetime import datetime
@@ -18,22 +18,14 @@ DEFAULT_BODY={
     "token": config.TRELLOTOKEN
 }
 
+HEADERS={"Content-Type": "application/json"}
+
 class CoreCommands(commands.Cog):
     def __init__(self, bot):
         self.bot:CourtsBot = bot
         self.checklist.start()
 
-    async def command_help_format(command:commands.Command, ctx:commands.Context) -> None:
-        if command._buckets and (cooldown := command._buckets._cooldown):
-            saying = f"**Cooldown:** {cooldown.per:.0f} seconds \n"
-        else:
-            saying = ""
-        return discord.Embed(
-            title=f"Command: {command.name}",
-            description=f"**Description:** {command.short_doc} \n {saying} **Format:** {ctx.clean_prefix}{command.qualified_name} {command.signature} \n **Category:** {command.cog_name or 'N/A'} ",
-        )
-
-    async def roblox_api_search(self, username: str, searchid=False) -> Union[False, str]:
+    async def roblox_api_search(self, username: str, searchid=False) -> Union[bool, str]:
         usercheck = "get-by-username?username=" if searchid is False else ""
         async with self.bot.session.get(
             f"https://api.roblox.com/users/{usercheck}{username}"
@@ -44,7 +36,7 @@ class CoreCommands(commands.Cog):
             else:
                 return info["Username"]
 
-    async def search_by_discord(self, member: discord.Member) -> Union[str, None]:
+    async def search_by_discord(self, member: discord.Member) -> Union[str, bool]:
         verifyname = None
         async with self.bot.session.get(
                 f"https://verify.eryn.io/api/user/{member.id}"
@@ -74,7 +66,7 @@ class CoreCommands(commands.Cog):
 
     async def search_by_roblox(
         self, ctx: commands.Context, guild: discord.Guild, username: str
-    ) -> Union[str, None]:
+    ) -> Union[str, bool]:
         try:
             member = await commands.MemberConverter().convert(ctx, username)
             return member
@@ -93,7 +85,7 @@ class CoreCommands(commands.Cog):
     async def add_to_hecxtro(self, cardinfo:dict) -> None:
         query={
             "idList": "61882bd6f10b1417f33f0c56",
-            "name": cardinfo['name'],
+            "name": f"Ex Parte {cardinfo['name']}",
             "pos": "bottom",
             "urlSource": cardinfo['shortUrl']
         }
@@ -190,17 +182,18 @@ class CoreCommands(commands.Cog):
         }
         allqueries={"5c3bcd0f80f20614a4c72093": statusquery, "5b06d74758c55f9759d896df": typequery, "5b37afa9bd79cab1decc0eb4": casenumquery}
         for q, value in allqueries.items():
-            await self.bot.session.put(
-                f"https://api.trello.com/1/cards/{cardinfo['id']}/customField/{q}/item", data=value
+            dofields=await self.bot.session.put(
+                f"https://api.trello.com/1/card/{cardinfo['id']}/customField/{q}/item", headers=HEADERS, json={**DEFAULT_BODY, **value}
             )
-
+        print(dofields.status)
+        
     async def expungify(self, cardinfo:dict, judge:str, hecxtro=False) -> None:
-        await self.add_expunge_fields(cardinfo)
         await self.format_expungement(cardinfo, judge)
+        await self.add_expunge_fields(cardinfo)
         if hecxtro is True:
             await self.add_to_hecxtro(cardinfo)
 
-    async def find_expungement_pos(self, carddata: dict) -> Union[False, dict]:
+    async def find_expungement_pos(self, carddata: dict) -> Union[bool, dict]:
         async with self.bot.session.get(
             "https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards"
         ) as p:
@@ -491,7 +484,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.is_owner()
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
-    async def reload(self, ctx, cog_name=None):
+    async def reload(self, ctx:commands.Context, cog_name=None):
         if cog_name is None:
             await ctx.reply("Provide a cog for me to reload!")
             return
@@ -514,8 +507,9 @@ class CoreCommands(commands.Cog):
         if not cards:
             await ctx.send("There are no cards to expungify, make sure you moved all cards you want to process into the `Prepare For Expungement` list before running this command.")
             return
-        judgename=flags.name.lower()
+        judgename=flags.judge.lower()
         if judgename not in self.bot.judgelists:
+            print(self.bot.judgelists)
             await ctx.send("Improper flag format. Run the help command and look for this command to find proper usage of the flag.")
             return
         numcards=len(cards)
@@ -523,10 +517,11 @@ class CoreCommands(commands.Cog):
         if confirm is False or confirm is None:
             await message.edit("Confirmation cancelled", view=None)
             return
-        await message.edit(f"Formatting {numcards} expungements...")
+        await message.edit(f"Formatting {numcards} expungements...", view=None)
         for card in cards:
             await self.expungify(card, judgename, judgename=="hecxtro")
-        
+        await message.edit("Expungements formatted.")
+
     @commands.command(
         name="reloadlists",
         help="Reloads the bots list data",
@@ -537,6 +532,17 @@ class CoreCommands(commands.Cog):
     async def reloadlists(self, ctx:commands.Context):
         await self.bot.reload_lists()
         await ctx.reply("Trello list data successfully reloaded.")
+
+    @commands.command(
+        name="reloadready",
+        help="Reloads the bots data by recalling its `on_ready` function",
+        brief="Reloads the bots data",
+    )
+    @commands.is_owner()
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
+    async def reloadready(self, ctx:commands.Context):
+        await on_ready()
+        await ctx.reply("Bot data reloaded.")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):
@@ -554,8 +560,8 @@ class CoreCommands(commands.Cog):
                 title="Cooldown",
                 description=f"This command is on cooldown, try again in `{round(error.retry_after, 1)}` seconds.",
             )
-        elif isinstance(error, commands.BadArgument):
-            message = await self.command_help_format(ctx.command.name, ctx)
+        elif isinstance(error, (commands.BadArgument, commands.MissingRequiredArgument)):
+            message = await CourtHelp().send_command_help(ctx.command, fake=True, context=ctx)
         elif isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, discord.errors.Forbidden):
@@ -563,8 +569,8 @@ class CoreCommands(commands.Cog):
                 title="No Permissions",
                 description="I am missing the required permissions to perform this command!",
             )
-        elif isinstance(error, commands.NotOwner):
-            message = discord.Embed(title="lol no", description="only 4 owner")
+        elif isinstance(error, (commands.NotOwner, commands.MissingAnyRole)):
+            message = discord.Embed(title="Missing Permissions", description="You are missing the required permissions to run this command")
         else:
             badmsg = discord.Embed(
                 title=f"Unknown Error, args: {ctx.args}, kwargs: {ctx.kwargs}",

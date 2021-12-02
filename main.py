@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands, tasks
 import aiohttp
 import config
-from dpyutils import HelpView
+from dpyutils import CourtHelp
 import pathlib
 
 
@@ -85,78 +85,6 @@ class CourtsBot(commands.Bot):
         self.load_extension("corecommands")
         self.run(config.TOKEN)
 
-
-class CourtHelp(commands.HelpCommand):
-    def __init__(self):
-        super().__init__(command_attrs=dict(hidden=True))
-
-    def get_command_signature(self, command):
-        ctx = self.context
-        return f"{ctx.clean_prefix}{command.qualified_name} {command.signature}"
-
-    def get_command_name(self, command):
-        return f"{command.qualified_name}"
-
-    async def send_all_help(self, *args, **kwargs):
-        ctx:commands.Context = self.context
-        embed = discord.Embed(
-            title="Firestone Court Utilities Help",
-            description=f"This bot is a utilities bot for the Firestone Courts that allows you to find your own cases, search for cases, and send automatic messages when cases are declined and expungements are completed. Use the dropdown menu to navigate through the commands.\n\n **Automatic Notifications**\nThe bot is on a 2 minute loop that checks for cases that have been completed. The bot will notify you for completed expungements with a copy of the card comments and the verdict, as well as declined cases with the same information.\n\n**{ctx.guild.name}'s prefix:** `{ctx.clean_prefix}`",
-            timestamp=discord.utils.utcnow(),
-            color=discord.Color.teal(),
-        )
-        embeds = {"Main Help Page": ["The main page for the help command", "🔷", embed]}
-        emojis = {"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚"}
-        filtercommands:List[commands.Command] = await self.filter_commands(ctx.bot.commands, sort=True)
-        for command in filtercommands:
-            if command.name in ["reload", "reloadlists"]:
-                continue
-            embed.add_field(
-                name=self.get_command_signature(command), value=command.brief
-            )
-            embeds[command.name] = [
-                command.brief,
-                emojis[command.name],
-                await self.send_command_help(command, fake=True),
-            ]
-        embed.set_author(name=str(ctx.author), icon_url=ctx.author.display_avatar.url)
-        embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
-        embed.set_thumbnail(url=ctx.me.display_avatar.url)
-        view = HelpView(embeds, ctx.author)
-        view.message = await ctx.reply(embed=embed, view=view)
-
-    send_bot_help = send_cog_help = send_group_help = send_all_help
-
-    async def send_command_help(self, command:commands.Command, fake=False):
-        ctx = self.context
-        embed = discord.Embed(
-            title=f"{ctx.clean_prefix}{command}",
-            description=command.help,
-            color=discord.Color.teal(),
-        )
-        embed.add_field(
-            name="Usage", value=f"`{self.get_command_signature(command)}`", inline=True
-        )
-        if command._buckets and (cooldown := command._buckets._cooldown):
-            embed.add_field(
-                name="Cooldown", value=f"{cooldown.per:.0f} seconds", inline=True
-            )
-        if command.aliases:
-            embed.add_field(name="Alias", value=",".join(command.aliases), inline=True)
-        embed.set_author(name=str(ctx.author), icon_url=ctx.author.display_avatar.url)
-        embed.set_thumbnail(url=ctx.me.display_avatar.url)
-        embed.set_footer(
-            text=f"Do {ctx.clean_prefix}help for more information | <> is required | [] is optional"
-        )
-        if fake is True:
-            return embed
-        await ctx.reply(embed=embed)
-
-    async def send_error_message(self, error):
-        embed = discord.Embed(title="Help not found!", description=error)
-        await self.context.send(embed=embed)
-
-
 bot = CourtsBot()
 
 
@@ -184,22 +112,24 @@ async def on_ready():
         if memname == "---":
             continue
         getname = memname.split(" ")
-        bot.memids[getname[-1]]=[member["idMembers"][0]]
+        bot.memids[getname[-1].lower()]=[member["idMembers"][0]]
         bot.members[member["idMembers"][0]] = getname[-1]
     async with bot.session.get('https://api.trello.com/1/boards/593b1c584d118d054065481d/lists') as l:
         lists=await l.json()
-    memnames=[mem for mem in bot.members.values()]
     for ls in lists:
         name:str=ls['name']
         if ' ' not in name:
             continue
-        if name.split(' ')[-1] in memnames:
-            bot.judgelists[name.lower()]=ls['id']
+        splitname=name.split(' ')[-1].lower()
+        if splitname in bot.memids:
+            bot.judgelists[splitname]=ls['id']
+    print(bot.judgelists)
+    print(bot.memids)
     print("bot is ready")
 
 
 @bot.check
-async def block_dms(ctx):
+async def block_dms(ctx:commands.Context):
     return ctx.guild is not None
 
 
