@@ -129,8 +129,6 @@ async def on_ready():
         splitname = name.split(" ")[-1].lower()
         if splitname in bot.memids:
             bot.judgelists[splitname] = ls["id"]
-    print(bot.judgelists)
-    print(bot.memids)
     print("bot is ready")
 
 

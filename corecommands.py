@@ -189,7 +189,6 @@ class CoreCommands(commands.Cog):
                 headers=HEADERS,
                 json={**DEFAULT_BODY, **value},
             )
-        print(dofields.status)
 
     async def expungify(self, cardinfo: dict, judge: str, hecxtro=False) -> None:
         await self.format_expungement(cardinfo, judge)
@@ -523,7 +522,6 @@ class CoreCommands(commands.Cog):
             return
         judgename = flags.judge.lower()
         if judgename not in self.bot.judgelists:
-            print(self.bot.judgelists)
             await ctx.send(
                 "Improper flag format. Run the help command and look for this command to find proper usage of the flag."
             )
