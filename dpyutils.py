@@ -150,7 +150,7 @@ class CourtHelp(commands.HelpCommand):
             color=discord.Color.teal(),
         )
         embeds = {"Main Help Page": ["The main page for the help command", "🔷", embed]}
-        emojis = {"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚"}
+        emojis = {"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚", "expungify": "〽️"}
         filtercommands:List[commands.Command] = await self.filter_commands(ctx.bot.commands, sort=True)
         for command in filtercommands:
             if command.name in ["reload", "reloadlists", "reloadready"]:
