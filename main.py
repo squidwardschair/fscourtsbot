@@ -1,8 +1,9 @@
+from typing import List
 import discord
 from discord.ext import commands, tasks
 import aiohttp
 import config
-from buttonpaginator import HelpView
+from dpyutils import HelpView
 import pathlib
 
 
@@ -22,10 +23,12 @@ class CourtsBot(commands.Bot):
             "581f9473930c99e72f209b09": "Firestone Courts Case Submission Center",
         }
         self.members = {}
+        self.judgelists={}
         self.cardlist = None
         self.guild = None
         self.owner = None
         self.loc = None
+        self.memids={}
         self.cfitems= [
         "5c3bcd0f80f20614a4c72093",
         "5b08b5face269325c8ed581d",
@@ -43,25 +46,22 @@ class CourtsBot(commands.Bot):
 
     async def check_trello(self):
         async with self.session.get(
-            "https://api.trello.com/1/boards/593b1c584d118d054065481d"
-        ) as c:
-            if c.status != 200:
-                return False
-            else:
-                return True
+                "https://api.trello.com/1/boards/593b1c584d118d054065481d"
+            ) as c:
+            return c.status == 200
 
     async def check_roblox(self):
         async with self.session.get(
-            "https://api.roblox.com/users/get-by-username?username=ElloNT"
-        ) as r:
-            if r.status != 200:
-                try:
-                    await r.json()
-                    return True
-                except:
-                    return False
-            else:
+                "https://api.roblox.com/users/get-by-username?username=ElloNT"
+            ) as r:
+            if r.status == 200:
                 return True
+
+            try:
+                await r.json()
+                return True
+            except aiohttp.ContentTypeError:
+                return False
 
     async def reload_lists(self):
         for board in self.boardids:
@@ -79,7 +79,7 @@ class CourtsBot(commands.Bot):
             if str(f).startswith("config"):
                 continue
             with f.open(encoding="utf8") as of:
-                for l in of.readlines():
+                for _ in of.readlines():
                     count += 1
         self.loc = count
         self.load_extension("corecommands")
@@ -98,7 +98,7 @@ class CourtHelp(commands.HelpCommand):
         return f"{command.qualified_name}"
 
     async def send_all_help(self, *args, **kwargs):
-        ctx = self.context
+        ctx:commands.Context = self.context
         embed = discord.Embed(
             title="Firestone Court Utilities Help",
             description=f"This bot is a utilities bot for the Firestone Courts that allows you to find your own cases, search for cases, and send automatic messages when cases are declined and expungements are completed. Use the dropdown menu to navigate through the commands.\n\n **Automatic Notifications**\nThe bot is on a 2 minute loop that checks for cases that have been completed. The bot will notify you for completed expungements with a copy of the card comments and the verdict, as well as declined cases with the same information.\n\n**{ctx.guild.name}'s prefix:** `{ctx.clean_prefix}`",
@@ -107,9 +107,9 @@ class CourtHelp(commands.HelpCommand):
         )
         embeds = {"Main Help Page": ["The main page for the help command", "🔷", embed]}
         emojis = {"search": "🔍", "botinfo": "ℹ️", "caseinfo": "📚"}
-        filtercommands = await self.filter_commands(ctx.bot.commands, sort=True)
+        filtercommands:List[commands.Command] = await self.filter_commands(ctx.bot.commands, sort=True)
         for command in filtercommands:
-            if command.name == "reload" or command.name == "reloadlists":
+            if command.name in ["reload", "reloadlists"]:
                 continue
             embed.add_field(
                 name=self.get_command_signature(command), value=command.brief
@@ -127,7 +127,7 @@ class CourtHelp(commands.HelpCommand):
 
     send_bot_help = send_cog_help = send_group_help = send_all_help
 
-    async def send_command_help(self, command, fake=False):
+    async def send_command_help(self, command:commands.Command, fake=False):
         ctx = self.context
         embed = discord.Embed(
             title=f"{ctx.clean_prefix}{command}",
@@ -154,8 +154,7 @@ class CourtHelp(commands.HelpCommand):
 
     async def send_error_message(self, error):
         embed = discord.Embed(title="Help not found!", description=error)
-        channel = self.get_destination()
-        await channel.send(embed=embed)
+        await self.context.send(embed=embed)
 
 
 bot = CourtsBot()
@@ -178,15 +177,24 @@ async def on_ready():
         for option in info["options"]:
             bot.customfields[option["id"]] = [info["name"], option["value"]["text"]]
     await bot.reload_lists()
-    async with bot.session.get(
-        f"https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards"
-    ) as c:
+    async with bot.session.get('https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards') as c:
         cinfo = await c.json()
     for member in cinfo:
-        if member["name"] == "---":
+        memname:str=member["name"]
+        if memname == "---":
             continue
-        getname = member["name"].split(" ")
+        getname = memname.split(" ")
+        bot.memids[getname[-1]]=[member["idMembers"][0]]
         bot.members[member["idMembers"][0]] = getname[-1]
+    async with bot.session.get('https://api.trello.com/1/boards/593b1c584d118d054065481d/lists') as l:
+        lists=await l.json()
+    memnames=[mem for mem in bot.members.values()]
+    for ls in lists:
+        name:str=ls['name']
+        if ' ' not in name:
+            continue
+        if name.split(' ')[-1] in memnames:
+            bot.judgelists[name.lower()]=ls['id']
     print("bot is ready")
 
 
