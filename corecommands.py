@@ -13,19 +13,19 @@ import config
 import random
 from datetime import datetime
 
-DEFAULT_BODY={
-    "key": config.TRELLOKEY,
-    "token": config.TRELLOTOKEN
-}
+DEFAULT_BODY = {"key": config.TRELLOKEY, "token": config.TRELLOTOKEN}
 
-HEADERS={"Content-Type": "application/json"}
+HEADERS = {"Content-Type": "application/json"}
+
 
 class CoreCommands(commands.Cog):
     def __init__(self, bot):
-        self.bot:CourtsBot = bot
+        self.bot: CourtsBot = bot
         self.checklist.start()
 
-    async def roblox_api_search(self, username: str, searchid=False) -> Union[bool, str]:
+    async def roblox_api_search(
+        self, username: str, searchid=False
+    ) -> Union[bool, str]:
         usercheck = "get-by-username?username=" if searchid is False else ""
         async with self.bot.session.get(
             f"https://api.roblox.com/users/{usercheck}{username}"
@@ -39,14 +39,14 @@ class CoreCommands(commands.Cog):
     async def search_by_discord(self, member: discord.Member) -> Union[str, bool]:
         verifyname = None
         async with self.bot.session.get(
-                f"https://verify.eryn.io/api/user/{member.id}"
-            ) as c:
+            f"https://verify.eryn.io/api/user/{member.id}"
+        ) as c:
             info = await c.json()
             if info["status"] == "ok":
                 verifyname = info["robloxId"]
         async with self.bot.session.get(
-                f"https://api.blox.link/v1/user/{member.id}"
-            ) as c:
+            f"https://api.blox.link/v1/user/{member.id}"
+        ) as c:
             info = await c.json()
             if info["status"] == "ok":
                 verifyname = info["primaryAccount"]
@@ -82,16 +82,16 @@ class CoreCommands(commands.Cog):
                 return value
         return None
 
-    async def add_to_hecxtro(self, cardinfo:dict) -> None:
-        query={
+    async def add_to_hecxtro(self, cardinfo: dict) -> None:
+        query = {
             "idList": "61882bd6f10b1417f33f0c56",
             "name": f"Ex Parte {cardinfo['name']}",
             "pos": "bottom",
-            "urlSource": cardinfo['shortUrl']
+            "urlSource": cardinfo["shortUrl"],
         }
-        body={**DEFAULT_BODY, **query}
+        body = {**DEFAULT_BODY, **query}
         await self.bot.session.post("https://api.trello.com/1/cards", data=body)
-        
+
     async def build_card_info(self, cardid: str) -> dict:
         async with self.bot.session.get(f"https://trello.com/c/{cardid}.json") as t:
             info = await t.json()
@@ -156,38 +156,42 @@ class CoreCommands(commands.Cog):
         for field in cardinfo["customfields"]:
             embed.add_field(name=field[0], value=field[1])
         return embed
-    
-    async def format_expungement(self, cardinfo:dict, judge:str) -> None:
-        query={
+
+    async def format_expungement(self, cardinfo: dict, judge: str) -> None:
+        query = {
             "name": f"Ex Parte {cardinfo['name']}",
             "idMembers": self.bot.memids[judge],
             "idBoard": "593b1c584d118d054065481d",
             "idList": self.bot.judgelists[judge],
-            "pos": "bottom"
+            "pos": "bottom",
         }
-        body={**DEFAULT_BODY, **query}
-        await self.bot.session.put(f"https://api.trello.com/1/cards/{cardinfo['id']}", data=body)
+        body = {**DEFAULT_BODY, **query}
+        await self.bot.session.put(
+            f"https://api.trello.com/1/cards/{cardinfo['id']}", data=body
+        )
 
-    async def add_expunge_fields(self, cardinfo:dict) -> None:
-        statusquery={
-            "idValue": "5c3bcd0f80f20614a4c72098"
-        }
-        typequery={
-            "idValue": "5b3a95425b951686400f76b0"
-        }
-        casenumquery={
+    async def add_expunge_fields(self, cardinfo: dict) -> None:
+        statusquery = {"idValue": "5c3bcd0f80f20614a4c72098"}
+        typequery = {"idValue": "5b3a95425b951686400f76b0"}
+        casenumquery = {
             "value": {
                 "text": f"C-{datetime.now().strftime('%m%d%y')}-{random.randint(100, 999)}"
             }
         }
-        allqueries={"5c3bcd0f80f20614a4c72093": statusquery, "5b06d74758c55f9759d896df": typequery, "5b37afa9bd79cab1decc0eb4": casenumquery}
+        allqueries = {
+            "5c3bcd0f80f20614a4c72093": statusquery,
+            "5b06d74758c55f9759d896df": typequery,
+            "5b37afa9bd79cab1decc0eb4": casenumquery,
+        }
         for q, value in allqueries.items():
-            dofields=await self.bot.session.put(
-                f"https://api.trello.com/1/card/{cardinfo['id']}/customField/{q}/item", headers=HEADERS, json={**DEFAULT_BODY, **value}
+            dofields = await self.bot.session.put(
+                f"https://api.trello.com/1/card/{cardinfo['id']}/customField/{q}/item",
+                headers=HEADERS,
+                json={**DEFAULT_BODY, **value},
             )
         print(dofields.status)
-        
-    async def expungify(self, cardinfo:dict, judge:str, hecxtro=False) -> None:
+
+    async def expungify(self, cardinfo: dict, judge: str, hecxtro=False) -> None:
         await self.format_expungement(cardinfo, judge)
         await self.add_expunge_fields(cardinfo)
         if hecxtro is True:
@@ -343,7 +347,7 @@ class CoreCommands(commands.Cog):
                 continue
             embed = await self.build_embed(buildcard)
             embed.set_author(
-                name='Your case has been ruled on',
+                name="Your case has been ruled on",
                 icon_url=getmem.display_avatar.url,
             )
 
@@ -351,7 +355,7 @@ class CoreCommands(commands.Cog):
             if "Trial" in buildcard:
                 desc = desc + f"petitioned for a `{buildcard['Trial']}`."
             else:
-                desc = desc + 'filed a case.'
+                desc = desc + "filed a case."
             if buildcard["judge"] is not None:
                 desc = (
                     desc
@@ -385,7 +389,7 @@ class CoreCommands(commands.Cog):
         brief="Search for a court case",
     )
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
-    async def search(self, ctx:commands.Context, *, query: str = None):
+    async def search(self, ctx: commands.Context, *, query: str = None):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
             await ctx.reply("Trello is currently down, please try again later.")
@@ -396,7 +400,7 @@ class CoreCommands(commands.Cog):
         if len(query) < 3:
             await ctx.reply("Search term too short.")
             return
-        message:discord.Message = await ctx.reply("Retriving case info...")
+        message: discord.Message = await ctx.reply("Retriving case info...")
         getsearch = await self.run_search(ctx, query)
         await message.delete()
         if getsearch is False:
@@ -409,7 +413,7 @@ class CoreCommands(commands.Cog):
         brief="Get your own court cases",
     )
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
-    async def caseinfo(self, ctx:commands.Context):
+    async def caseinfo(self, ctx: commands.Context):
         checktrello = await self.bot.check_trello()
         checkroblox = await self.bot.check_roblox()
         if checktrello is False:
@@ -447,7 +451,7 @@ class CoreCommands(commands.Cog):
         brief="Retrives information about the bot",
     )
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
-    async def botinfo(self, ctx:commands.Context):
+    async def botinfo(self, ctx: commands.Context):
         starttime = time.perf_counter()
         msg = await ctx.reply("Retriving bot info...")
         enddtime = time.perf_counter()
@@ -484,7 +488,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.is_owner()
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
-    async def reload(self, ctx:commands.Context, cog_name=None):
+    async def reload(self, ctx: commands.Context, cog_name=None):
         if cog_name is None:
             await ctx.reply("Provide a cog for me to reload!")
             return
@@ -498,28 +502,44 @@ class CoreCommands(commands.Cog):
             await ctx.reply(f"I did not find a cog named {cog_name}.")
             return
 
-    @commands.command(name="expungify", help="Formats cards ready for expungement processing on the case submission board including adding custom fields, adding the members, and changing the name. You must move the cards to the `Prepare for Expungement` list before you run this command. You must specify which docket you want it moved to using a flag in the following format: `--judge <judge name>`. For example `!expungify --judge Hecxtro` will format cards for expungement and move it to Hecxtro's docket.", brief="Prepares a batch of cards on Trello for expungement.")
-    @commands.has_any_role("District Court Judge", "Associate Justice", "Chief Justice", "Clerk")
+    @commands.command(
+        name="expungify",
+        help="Formats cards ready for expungement processing on the case submission board including adding custom fields, adding the members, and changing the name. You must move the cards to the `Prepare for Expungement` list before you run this command. You must specify which docket you want it moved to using a flag in the following format: `--judge <judge name>`. For example `!expungify --judge Hecxtro` will format cards for expungement and move it to Hecxtro's docket.",
+        brief="Prepares a batch of cards on Trello for expungement.",
+    )
+    @commands.has_any_role(
+        "District Court Judge", "Associate Justice", "Chief Justice", "Clerk"
+    )
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.guild)
-    async def expungify_cmd(self, ctx:commands.Context, *, flags:MoveFlags):
-        async with self.bot.session.get("https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards") as c:
-            cards=await c.json()
+    async def expungify_cmd(self, ctx: commands.Context, *, flags: MoveFlags):
+        async with self.bot.session.get(
+            "https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards"
+        ) as c:
+            cards = await c.json()
         if not cards:
-            await ctx.send("There are no cards to expungify, make sure you moved all cards you want to process into the `Prepare For Expungement` list before running this command.")
+            await ctx.send(
+                "There are no cards to expungify, make sure you moved all cards you want to process into the `Prepare For Expungement` list before running this command."
+            )
             return
-        judgename=flags.judge.lower()
+        judgename = flags.judge.lower()
         if judgename not in self.bot.judgelists:
             print(self.bot.judgelists)
-            await ctx.send("Improper flag format. Run the help command and look for this command to find proper usage of the flag.")
+            await ctx.send(
+                "Improper flag format. Run the help command and look for this command to find proper usage of the flag."
+            )
             return
-        numcards=len(cards)
-        confirm, message=await button_confirm(ctx.author, ctx.channel, f"Are you sure you wish to process `{numcards}` expungements on Trello?")
+        numcards = len(cards)
+        confirm, message = await button_confirm(
+            ctx.author,
+            ctx.channel,
+            f"Are you sure you wish to process `{numcards}` expungements on Trello?",
+        )
         if confirm is False or confirm is None:
             await message.edit("Confirmation cancelled", view=None)
             return
         await message.edit(f"Formatting {numcards} expungements...", view=None)
         for card in cards:
-            await self.expungify(card, judgename, judgename=="hecxtro")
+            await self.expungify(card, judgename, judgename == "hecxtro")
         await message.edit("Expungements formatted.")
 
     @commands.command(
@@ -529,7 +549,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.is_owner()
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
-    async def reloadlists(self, ctx:commands.Context):
+    async def reloadlists(self, ctx: commands.Context):
         await self.bot.reload_lists()
         await ctx.reply("Trello list data successfully reloaded.")
 
@@ -540,7 +560,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.is_owner()
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
-    async def reloadready(self, ctx:commands.Context):
+    async def reloadready(self, ctx: commands.Context):
         await on_ready()
         await ctx.reply("Bot data reloaded.")
 
@@ -560,8 +580,12 @@ class CoreCommands(commands.Cog):
                 title="Cooldown",
                 description=f"This command is on cooldown, try again in `{round(error.retry_after, 1)}` seconds.",
             )
-        elif isinstance(error, (commands.BadArgument, commands.MissingRequiredArgument)):
-            message = await CourtHelp().send_command_help(ctx.command, fake=True, context=ctx)
+        elif isinstance(
+            error, (commands.BadArgument, commands.MissingRequiredArgument)
+        ):
+            message = await CourtHelp().send_command_help(
+                ctx.command, fake=True, context=ctx
+            )
         elif isinstance(error, (commands.CommandNotFound, commands.CheckFailure)):
             return
         elif isinstance(error, discord.errors.Forbidden):
@@ -570,7 +594,10 @@ class CoreCommands(commands.Cog):
                 description="I am missing the required permissions to perform this command!",
             )
         elif isinstance(error, (commands.NotOwner, commands.MissingAnyRole)):
-            message = discord.Embed(title="Missing Permissions", description="You are missing the required permissions to run this command")
+            message = discord.Embed(
+                title="Missing Permissions",
+                description="You are missing the required permissions to run this command",
+            )
         else:
             badmsg = discord.Embed(
                 title=f"Unknown Error, args: {ctx.args}, kwargs: {ctx.kwargs}",
@@ -585,5 +612,5 @@ class CoreCommands(commands.Cog):
         await ctx.reply(embed=message)
 
 
-def setup(bot:CourtsBot):
+def setup(bot: CourtsBot):
     bot.add_cog(CoreCommands(bot))

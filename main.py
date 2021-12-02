@@ -23,20 +23,21 @@ class CourtsBot(commands.Bot):
             "581f9473930c99e72f209b09": "Firestone Courts Case Submission Center",
         }
         self.members = {}
-        self.judgelists={}
+        self.judgelists = {}
         self.cardlist = None
         self.guild = None
         self.owner = None
         self.loc = None
-        self.memids={}
-        self.cfitems= [
-        "5c3bcd0f80f20614a4c72093",
-        "5b08b5face269325c8ed581d",
-        "5b06d74758c55f9759d896df",
-        "5b06d1c81e3ecc5e2f288da7",
-        "5bca6f3c24afea5d2b007136",
-        "5c54684b92c5f91774896b08",
+        self.memids = {}
+        self.cfitems = [
+            "5c3bcd0f80f20614a4c72093",
+            "5b08b5face269325c8ed581d",
+            "5b06d74758c55f9759d896df",
+            "5b06d1c81e3ecc5e2f288da7",
+            "5bca6f3c24afea5d2b007136",
+            "5c54684b92c5f91774896b08",
         ]
+
     async def close(self):
         await self.session.close()
         await super().close()
@@ -46,14 +47,14 @@ class CourtsBot(commands.Bot):
 
     async def check_trello(self):
         async with self.session.get(
-                "https://api.trello.com/1/boards/593b1c584d118d054065481d"
-            ) as c:
+            "https://api.trello.com/1/boards/593b1c584d118d054065481d"
+        ) as c:
             return c.status == 200
 
     async def check_roblox(self):
         async with self.session.get(
-                "https://api.roblox.com/users/get-by-username?username=ElloNT"
-            ) as r:
+            "https://api.roblox.com/users/get-by-username?username=ElloNT"
+        ) as r:
             if r.status == 200:
                 return True
 
@@ -85,6 +86,7 @@ class CourtsBot(commands.Bot):
         self.load_extension("corecommands")
         self.run(config.TOKEN)
 
+
 bot = CourtsBot()
 
 
@@ -105,31 +107,35 @@ async def on_ready():
         for option in info["options"]:
             bot.customfields[option["id"]] = [info["name"], option["value"]["text"]]
     await bot.reload_lists()
-    async with bot.session.get('https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards') as c:
+    async with bot.session.get(
+        "https://api.trello.com/1/list/593b1c5e82af460cb51b61c7/cards"
+    ) as c:
         cinfo = await c.json()
     for member in cinfo:
-        memname:str=member["name"]
+        memname: str = member["name"]
         if memname == "---":
             continue
         getname = memname.split(" ")
-        bot.memids[getname[-1].lower()]=[member["idMembers"][0]]
+        bot.memids[getname[-1].lower()] = [member["idMembers"][0]]
         bot.members[member["idMembers"][0]] = getname[-1]
-    async with bot.session.get('https://api.trello.com/1/boards/593b1c584d118d054065481d/lists') as l:
-        lists=await l.json()
+    async with bot.session.get(
+        "https://api.trello.com/1/boards/593b1c584d118d054065481d/lists"
+    ) as l:
+        lists = await l.json()
     for ls in lists:
-        name:str=ls['name']
-        if ' ' not in name:
+        name: str = ls["name"]
+        if " " not in name:
             continue
-        splitname=name.split(' ')[-1].lower()
+        splitname = name.split(" ")[-1].lower()
         if splitname in bot.memids:
-            bot.judgelists[splitname]=ls['id']
+            bot.judgelists[splitname] = ls["id"]
     print(bot.judgelists)
     print(bot.memids)
     print("bot is ready")
 
 
 @bot.check
-async def block_dms(ctx:commands.Context):
+async def block_dms(ctx: commands.Context):
     return ctx.guild is not None
 
 
