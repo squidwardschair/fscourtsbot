@@ -229,7 +229,7 @@ class CoreCommands(commands.Cog):
 
     async def run_search(self, ctx, search) -> bool:
         dcresults = await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d')
-        csresults = await self.bot.getreq_json('https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09')
+        csresults = await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09')
         results = dcresults["cards"] + csresults["cards"]
         if not results:
             return False
