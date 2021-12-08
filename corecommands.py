@@ -1,4 +1,3 @@
-import datetime
 from typing import Union
 import discord
 from discord.ext import tasks, commands
@@ -11,7 +10,7 @@ from os import getpid
 from main import CourtsBot, on_ready
 import config
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DEFAULT_BODY = {"key": config.TRELLOKEY, "token": config.TRELLOTOKEN}
 
@@ -216,8 +215,8 @@ class CoreCommands(commands.Cog):
             else:
                 etadate = (
                     carddate
-                    + datetime.timedelta(days=diff)
-                    + datetime.timedelta(days=15)
+                    + timedelta(days=diff)
+                    + timedelta(days=15)
                 )
                 etadelta = etadate - discord.utils.utcnow()
                 saying = f" It is likely that your expungement will be processed within approximately **{etadelta.days} days** (before __{etadate.strftime('%m/%d/%Y')}__)"
