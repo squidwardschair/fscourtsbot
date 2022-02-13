@@ -50,10 +50,7 @@ class CoreCommands(commands.Cog):
             if rcheck is not False:
                 return rcheck
         rcheck = await self.roblox_api_search(member.name)
-        if rcheck is not False:
-            return rcheck
-        else:
-            return None
+        return rcheck if rcheck is not False else None
 
     async def search_by_roblox(
         self, ctx: commands.Context, guild: discord.Guild, username: str
@@ -68,10 +65,9 @@ class CoreCommands(commands.Cog):
             guildsearch[m.name.lower()] = m
             if m.nick is not None:
                 guildsearch[m.nick.lower()] = m
-        for mem, value in guildsearch.items():
-            if mem == username:
-                return value
-        return None
+        return next(
+            (value for mem, value in guildsearch.items() if mem == username), None
+        )
 
     async def add_to_hecxtro(self, cardinfo: dict) -> None:
         query = {
@@ -135,14 +131,15 @@ class CoreCommands(commands.Cog):
         hascomment = False
         comments = "**Card Comments**\n"
         for comment in cardinfo["comments"]:
-            comments = comments + f"> {comment}\n--\n"
+            comments += f"> {comment}\n--\n"
             hascomment = True
         embed = discord.Embed(
             title=f"Case Info for {cardinfo['title']}",
-            description=f"Board - **{cardinfo['board']}**\nCard List - **{cardinfo['list']}**\n[Card Link]({cardinfo['url']})\n\n{comments if hascomment is True else ''}",
+            description=f'Board - **{cardinfo["board"]}**\nCard List - **{cardinfo["list"]}**\n[Card Link]({cardinfo["url"]})\n\n{comments if hascomment else ""}',
             timestamp=discord.utils.utcnow(),
             color=753812,
         )
+
         for field in cardinfo["customfields"]:
             embed.add_field(name=field[0], value=field[1])
         return embed

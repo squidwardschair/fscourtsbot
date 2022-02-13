@@ -13,7 +13,7 @@ class ButtonPaginator(discord.ui.View):
 
         for e in self.embeds:
             e.set_footer(
-                text=f"({self.embeds.index(e)+1}/{len(self.embeds)})  {'' if e.footer.text == discord.Embed.Empty else '• '+ e.footer.text}"
+                text=f'({self.embeds.index(e) + 1}/{len(self.embeds)})  {"" if e.footer.text == discord.Embed.Empty else f"• {e.footer.text}"}'
             )
 
     @classmethod
@@ -182,7 +182,7 @@ class CourtHelp(commands.HelpCommand):
         embeds = {"Main Help Page": [
             "The main page for the help command", "🔷", embed]}
         emojis = {"search": "🔍", "botinfo": "ℹ️",
-                  "caseinfo": "📚", "expungify": "〽️"}
+                  "caseinfo": "📚", "expungify": "〽️", "wordle": "🇼"}
         filtercommands: List[commands.Command] = await self.filter_commands(
             ctx.bot.commands, sort=True
         )

@@ -1,11 +1,10 @@
-from typing import List
 import discord
 from discord.ext import commands, tasks
 import aiohttp
 import config
 from dpyutils import CourtHelp
 import pathlib
-
+from typing import List
 
 class CourtsBot(commands.Bot):
     def __init__(self):
@@ -90,7 +89,6 @@ class CourtsBot(commands.Bot):
         async with self.session.get(url) as i:
             info = await i.json()
         return info
-
 
 bot = CourtsBot()
 
