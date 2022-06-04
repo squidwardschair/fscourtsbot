@@ -76,7 +76,7 @@ class CourtsBot(commands.Bot):
         p = pathlib.Path("./")
         count = 0
         for f in p.rglob("*.py"):
-            if str(f).startswith("config"):
+            if str(f).startswith("config") or str(f).startswith("env"):
                 continue
             with f.open(encoding="utf8") as of:
                 for _ in of.readlines():

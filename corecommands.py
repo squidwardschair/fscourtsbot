@@ -1,4 +1,5 @@
-from typing import Union
+from __future__ import annotations
+from typing import Union, TYPE_CHECKING
 import discord
 from discord.ext import tasks, commands
 from dpyutils import ButtonPaginator, MoveFlags, CourtHelp, button_confirm
@@ -7,11 +8,13 @@ import traceback
 import time
 from psutil import Process
 from os import getpid
-from main import CourtsBot, on_ready
+from main import on_ready
 import config
 import random
 from datetime import datetime, timedelta
-
+if TYPE_CHECKING:
+    from main import CourtsBot
+    
 DEFAULT_BODY = {"key": config.TRELLOKEY, "token": config.TRELLOTOKEN}
 
 HEADERS = {"Content-Type": "application/json"}
