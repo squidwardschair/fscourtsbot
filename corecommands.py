@@ -193,6 +193,8 @@ class CoreCommands(commands.Cog):
         pos = None
         first = False
         for i, card in enumerate(info):
+            if not first:
+                first = card["shortLink"]
             if card["id"] == carddata["id"]:
                 pos = i + 1
         if pos is None:
