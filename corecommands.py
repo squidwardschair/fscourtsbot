@@ -188,6 +188,7 @@ class CoreCommands(commands.Cog):
 
     async def find_expungement_pos(self, carddata: dict) -> Union[bool, dict]:
         info = await self.bot.getreq_json("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards")
+        print(info)
         badcount = 0
         pos = None
         first = False
