@@ -192,13 +192,13 @@ class CoreCommands(commands.Cog):
         pos = None
         first = False
         for i, card in enumerate(info):
+            print(card["id"], carddata["id"])
             if card["labels"]:
                 badcount += 1
                 continue
             if not first:
                 first = card["shortLink"]
             if card["id"] == carddata["id"]:
-                print(card["id"], carddata["id"])
                 pos = i + 1 - badcount
         if pos is None:
             return False
