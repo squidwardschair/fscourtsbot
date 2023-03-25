@@ -132,4 +132,4 @@ async def block_dms(ctx: commands.Context):
     return ctx.guild is not None
 
 
-bot.run_bot()
+await bot.run_bot()
