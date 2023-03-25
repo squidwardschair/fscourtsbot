@@ -72,7 +72,7 @@ class CourtsBot(commands.Bot):
             for list in info:
                 self.lists[list["id"]] = list["name"]
 
-    def run_bot(self):
+    async def run_bot(self):
         p = pathlib.Path("./")
         count = 0
         for f in p.rglob("*.py"):
