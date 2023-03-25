@@ -82,7 +82,7 @@ class CourtsBot(commands.Bot):
                 for _ in of.readlines():
                     count += 1
         self.loc = count
-        self.load_extension("corecommands")
+        await self.load_extension("corecommands")
         self.run(config.TOKEN)
 
     async def getreq_json(self, url: str):
