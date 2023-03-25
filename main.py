@@ -43,7 +43,6 @@ class CourtsBot(commands.Bot):
 
     async def on_connect(self):
         self.session = aiohttp.ClientSession(loop=self.loop)
-        await self.load_extension("corecommands")
 
     async def check_trello(self):
         async with self.session.get(
@@ -83,6 +82,7 @@ class CourtsBot(commands.Bot):
                 for _ in of.readlines():
                     count += 1
         self.loc = count
+        self.load_extension("corecommands")
         self.run(config.TOKEN)
 
     async def getreq_json(self, url: str):
