@@ -52,7 +52,7 @@ class CourtsBot(commands.Bot):
 
     async def check_roblox(self):
         async with self.session.get(
-            "https://api.roblox.com/users/get-by-username?username=ElloNT"
+            "https://users.roblox.com/v1/users/1143706094"
         ) as r:
             if r.status == 200:
                 return True
