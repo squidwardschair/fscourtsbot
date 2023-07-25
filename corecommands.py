@@ -393,7 +393,7 @@ class CoreCommands(commands.Cog):
         #return
         if search is None:
             await ctx.reply(
-                "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account, verifying with Rover or Bloxlink, or using the `?search`."
+                "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account or using the `?search` command."
             )
             return
         message = await ctx.reply("Retriving case info...")
@@ -401,7 +401,7 @@ class CoreCommands(commands.Cog):
         await message.delete()
         if getsearch is False:
             await ctx.reply(
-                f"No search results found using search query __{search}__. If this isn't your ROBLOX username, this may because you verified with a different account on Rover or Bloxlink, or your Discord name/nickname isn't your ROBLOX username. Try using the search command and provide your own query."
+                f"No search results found using search query __{search}__. If this isn't your ROBLOX username, this may be because your Discord name/nickname isn't your ROBLOX username. Try using the search command and provide your own query."
             )
             return
 
