@@ -39,7 +39,7 @@ class CoreCommands(commands.Cog):
             data={"usernames": [username], "excludeBannedUsers": True}
             response=await self.bot.session.post("https://users.roblox.com/v1/usernames/users", headers=HEADERS, data=data)
             if response.status==200:
-                body=response.json()
+                body=await response.json()
                 if body["data"]:
                     result = body["data"]["name"]
                 else:
