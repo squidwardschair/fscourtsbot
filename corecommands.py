@@ -26,26 +26,19 @@ class CoreCommands(commands.Cog):
         self.checklist.start()
 
     async def roblox_api_search(
-        self, username: str, searchid=False
+        self, username: str
     ) -> Union[bool, str]:
         result=None
-        if searchid:
-            info = await self.bot.getreq_json(f"https://users.roblox.com/v1/users/{username}")
-            if "errorMessage" in info or "errors" in info:
-                result = False
-            else:
-                result = info["name"]
-        else: 
-            data={"usernames": [username], "excludeBannedUsers": True}
-            response=await self.bot.session.post("https://users.roblox.com/v1/usernames/users", headers=HEADERS, data=data)
-            if response.status==200:
-                body=await response.json()
-                if body["data"]:
-                    result = body["data"]["name"]
-                else:
-                    result = False
+        data={"usernames": [username], "excludeBannedUsers": True}
+        response=await self.bot.session.post("https://users.roblox.com/v1/usernames/users", headers=HEADERS, json=data)
+        if response.status==200:
+            body=await response.json()
+            if body["data"]:
+                result = body["data"][0]["name"]
             else:
                 result = False
+        else:
+            result = False
         return result
 
     async def search_by_discord(self, member: discord.Member) -> Union[str, bool]:
