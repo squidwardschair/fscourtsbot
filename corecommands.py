@@ -49,18 +49,6 @@ class CoreCommands(commands.Cog):
         return result
 
     async def search_by_discord(self, member: discord.Member) -> Union[str, bool]:
-        verifyname = None
-        info = await self.bot.getreq_json(f"https://verify.eryn.io/api/user/{member.id}")
-        if info["status"] == "ok":
-            verifyname = info["robloxId"]
-        else:
-            moreinfo = await self.bot.getreq_json(f"https://api.blox.link/v1/user/{member.id}")
-            if info["status"] == "ok":
-                verifyname = moreinfo["primaryAccount"]
-        if verifyname is not None:
-            rcheck = await self.roblox_api_search(verifyname, True)
-            if rcheck is not False:
-                return rcheck
         if member.nick:
             rcheck = await self.roblox_api_search(member.nick)
             if rcheck is not False:
