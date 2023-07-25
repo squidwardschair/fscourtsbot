@@ -403,13 +403,13 @@ class CoreCommands(commands.Cog):
                 "ROBLOX is currently down, therefore we can't connect you to a ROBLOX account. Please use the search command for now."
             )
             return
-        try:
-            search = await self.search_by_discord(ctx.author)
-        except:
-            await ctx.reply(
-                "ROBLOX is currently down, therefore we cannot cannot connect you to a ROBLOX account. Try using the search command with your own query"
-            )
-            return
+        #try:
+        search = await self.search_by_discord(ctx.author)
+        #except:
+        #await ctx.reply(
+        "ROBLOX is currently down, therefore we cannot cannot connect you to a ROBLOX account. Try using the search command with your own query"
+        #)
+        #return
         if search is None:
             await ctx.reply(
                 "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account, verifying with Rover or Bloxlink, or using the `?search`."
