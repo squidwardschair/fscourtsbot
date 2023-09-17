@@ -113,6 +113,8 @@ async def on_ready():
         memname: str = member["name"]
         if memname == "---":
             continue
+        elif "5f08e10710f2927fbd85a4a1" in member["idLabels"]:
+            continue
         getname = memname.split(" ")
         bot.memids[getname[-1].lower()] = [member["idMembers"][0]]
         bot.members[member["idMembers"][0]] = getname[-1]

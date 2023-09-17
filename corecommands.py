@@ -55,7 +55,7 @@ class CoreCommands(commands.Cog):
         try:
             member = await commands.MemberConverter().convert(ctx, username)
             return member
-        except:
+        except (discord.ext.commands.CommandError, discord.ext.commands.BadArgument):
             pass
         guildsearch = {}
         for m in guild.members:
@@ -153,6 +153,7 @@ class CoreCommands(commands.Cog):
         await self.bot.session.put(
             f"https://api.trello.com/1/cards/{cardinfo['id']}", data=body
         )
+
 
     async def add_expunge_fields(self, cardinfo: dict) -> None:
         statusquery = {"idValue": "5c3bcd0f80f20614a4c72098"}
@@ -326,7 +327,7 @@ class CoreCommands(commands.Cog):
             embed.description = desc + embed.description
             try:
                 await getmem.send(embed=embed)
-            except:
+            except (discord.HTTPException, discord.Forbidden):
                 pass
         self.bot.cardlist = cards
 
