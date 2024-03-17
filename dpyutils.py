@@ -209,7 +209,7 @@ class WarrantConfirmation(discord.ui.View):
         
         async with await self.db_pool.acquire() as cnc:
             id_cursor = await cnc.fetchone("SELECT request_id FROM warrantrequests ORDER BY request_id DESC LIMIT 1;")
-            if not last_id:
+            if not id_cursor:
                 last_id=0
             else:
                 last_id = dict(id_cursor)['request_id']
