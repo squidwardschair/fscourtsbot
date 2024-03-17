@@ -576,7 +576,7 @@ class CoreCommands(commands.Cog):
     )
     @commands.is_owner()
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
-    async def warrant_channel_msg(self, ctx: commands.Context):
+    async def warrant_request_channel(self, ctx: commands.Context):
         await ctx.reply("Channel set to receive warrant requests.")
         async with await self.bot.db_pool.acquire() as cnc:
             await cnc.execute("DELETE FROM request_channel;")
