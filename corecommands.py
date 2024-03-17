@@ -2,7 +2,13 @@ from __future__ import annotations
 from typing import Union, TYPE_CHECKING
 import discord
 from discord.ext import tasks, commands
-from dpyutils import ButtonPaginator, MoveFlags, CourtHelp, button_confirm
+from dpyutils import (
+    ButtonPaginator,
+    MoveFlags,
+    CourtHelp,
+    button_confirm,
+    WarrantRequestInit,
+)
 from dateutil import parser
 import traceback
 import time
@@ -12,9 +18,10 @@ from main import on_ready
 import config
 import random
 from datetime import datetime, timedelta
+
 if TYPE_CHECKING:
     from main import CourtsBot
-    
+
 DEFAULT_BODY = {"key": config.TRELLOKEY, "token": config.TRELLOTOKEN}
 
 HEADERS = {"Content-Type": "application/json"}
@@ -25,14 +32,14 @@ class CoreCommands(commands.Cog):
         self.bot: CourtsBot = bot
         self.checklist.start()
 
-    async def roblox_api_search(
-        self, username: str
-    ) -> Union[bool, str]:
-        result=None
-        data={"usernames": [username], "excludeBannedUsers": True}
-        response=await self.bot.session.post("https://users.roblox.com/v1/usernames/users", headers=HEADERS, json=data)
-        if response.status==200:
-            body=await response.json()
+    async def roblox_api_search(self, username: str) -> Union[bool, str]:
+        result = None
+        data = {"usernames": [username], "excludeBannedUsers": True}
+        response = await self.bot.session.post(
+            "https://users.roblox.com/v1/usernames/users", headers=HEADERS, json=data
+        )
+        if response.status == 200:
+            body = await response.json()
             if body["data"]:
                 result = body["data"][0]["name"]
             else:
@@ -154,7 +161,6 @@ class CoreCommands(commands.Cog):
             f"https://api.trello.com/1/cards/{cardinfo['id']}", data=body
         )
 
-
     async def add_expunge_fields(self, cardinfo: dict) -> None:
         statusquery = {"idValue": "5c3bcd0f80f20614a4c72098"}
         typequery = {"idValue": "5b3a95425b951686400f76b0"}
@@ -182,7 +188,9 @@ class CoreCommands(commands.Cog):
             await self.add_to_hecxtro(cardinfo)
 
     async def find_expungement_pos(self, carddata: dict) -> Union[bool, dict]:
-        info = await self.bot.getreq_json("https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards")
+        info = await self.bot.getreq_json(
+            "https://api.trello.com/1/list/5ee0847c0311740ab38f6c3a/cards"
+        )
         print(info)
         badcount = 0
         pos = None
@@ -198,7 +206,9 @@ class CoreCommands(commands.Cog):
             saying = False
         else:
             timeinfo = await self.bot.getreq_json(f"https://trello.com/c/{first}.json")
-            currentinfo = await self.bot.getreq_json(f"https://trello.com/c/{carddata['shortLink']}.json")
+            currentinfo = await self.bot.getreq_json(
+                f"https://trello.com/c/{carddata['shortLink']}.json"
+            )
             firstdate = parser.parse(timeinfo["actions"][-1]["date"])
             carddate = parser.parse(currentinfo["actions"][-1]["date"])
             objdiff = discord.utils.utcnow() - firstdate
@@ -206,11 +216,7 @@ class CoreCommands(commands.Cog):
             if diff == 0:
                 saying = " Estimated time unavaliable as the expungement has been filed less than 24 hours ago."
             else:
-                etadate = (
-                    carddate
-                    + timedelta(days=diff)
-                    + timedelta(days=15)
-                )
+                etadate = carddate + timedelta(days=diff) + timedelta(days=15)
                 etadelta = etadate - discord.utils.utcnow()
                 saying = f" It is likely that your expungement will be processed within approximately **{etadelta.days} days** (before __{etadate.strftime('%m/%d/%Y')}__)"
         return {
@@ -220,8 +226,12 @@ class CoreCommands(commands.Cog):
         }
 
     async def run_search(self, ctx, search) -> bool:
-        dcresults = await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d')
-        csresults = await self.bot.getreq_json(f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09')
+        dcresults = await self.bot.getreq_json(
+            f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=593b1c584d118d054065481d'
+        )
+        csresults = await self.bot.getreq_json(
+            f'https://api.trello.com/1/search?modelTypes=cards&query=name:"{search}"&idBoards=581f9473930c99e72f209b09'
+        )
         results = dcresults["cards"] + csresults["cards"]
         if not results:
             return False
@@ -271,11 +281,17 @@ class CoreCommands(commands.Cog):
         checktrello = await self.bot.check_trello()
         if checktrello is False:
             return
-        dcinfo = await self.bot.getreq_json("https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards")
-        csinfo = await self.bot.getreq_json("https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards")
+        dcinfo = await self.bot.getreq_json(
+            "https://api.trello.com/1/list/614cc2a13fd8132ec09ca24c/cards"
+        )
+        csinfo = await self.bot.getreq_json(
+            "https://api.trello.com/1/list/614e0d3654a68e12239f6c1b/cards"
+        )
         cards = []
         for dcard in dcinfo:
-            cardinfo = await self.bot.getreq_json("https://trello.com/c/{dcard['shortLink']}.json")
+            cardinfo = await self.bot.getreq_json(
+                "https://trello.com/c/{dcard['shortLink']}.json"
+            )
             for option in cardinfo["customFieldItems"]:
                 if (
                     "idValue" in option
@@ -288,8 +304,7 @@ class CoreCommands(commands.Cog):
             self.bot.cardlist = cards
             return
         if self.bot.cardlist:
-            newcards = [
-                card for card in cards if card not in self.bot.cardlist]
+            newcards = [card for card in cards if card not in self.bot.cardlist]
         else:
             newcards = cards
         fakecontext = discord.Object(id=0)
@@ -385,13 +400,13 @@ class CoreCommands(commands.Cog):
                 "ROBLOX is currently down, therefore we can't connect you to a ROBLOX account. Please use the search command for now."
             )
             return
-        #try:
+        # try:
         search = await self.search_by_discord(ctx.author)
-        #except:
-        #await ctx.reply(
+        # except:
+        # await ctx.reply(
         "ROBLOX is currently down, therefore we cannot cannot connect you to a ROBLOX account. Try using the search command with your own query"
-        #)
-        #return
+        # )
+        # return
         if search is None:
             await ctx.reply(
                 "I was unable to connect you to a Roblox account! Try changing your nickname to match your Roblox account or using the `?search` command."
@@ -439,8 +454,7 @@ class CoreCommands(commands.Cog):
             name="Memory Usage",
             value=f"{round(Process(getpid()).memory_info().rss/1024/1024, 2)} MB",
         )
-        embed.add_field(name="CPU Usage",
-                        value=f"{Process(getpid()).cpu_percent()}%")
+        embed.add_field(name="CPU Usage", value=f"{Process(getpid()).cpu_percent()}%")
         embed.set_footer(text="Created by MrApples#2555, contact me for bugs")
         await msg.delete()
         await ctx.reply(embed=embed)
@@ -474,7 +488,9 @@ class CoreCommands(commands.Cog):
     )
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.guild)
     async def expungify_cmd(self, ctx: commands.Context, *, flags: MoveFlags):
-        cards = await self.bot.getreq_json("https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards")
+        cards = await self.bot.getreq_json(
+            "https://api.trello.com/1/list/61a82ae6b3a2477b5cd8e8c0/cards"
+        )
         if not cards:
             await ctx.send(
                 "There are no cards to expungify, make sure you moved all cards you want to process into the `Prepare For Expungement` list before running this command."
@@ -521,6 +537,54 @@ class CoreCommands(commands.Cog):
     async def reloadready(self, ctx: commands.Context):
         await on_ready()
         await ctx.reply("Bot data reloaded.")
+
+    @commands.command(
+        name="sendwarrantrequest",
+        help="Sends the warrant request message",
+        brief="Sends the warrant request message",
+    )
+    @commands.is_owner()
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
+    async def warrant_request_msg(self, ctx: commands.Context):
+        await ctx.message.delete()
+        embed = discord.Embed(
+            title="Uniform Warrant Request System", color=discord.Color.dark_gold()
+        )
+        embed.description = """
+            If you are a law enforcement officer, you can request an arrest or search warrant by pressing the button below.
+
+            You will need to know who the warrant is for and have proof of their involvement. You will need to provide a statement of facts under oath about what happened and why a warrant should be issued.
+
+            An arrest warrant authorises the arrest of a suspect for up to one hour.
+            A search warrant authorises the search of a storage unit, other property, or a person and the seizure of items found.
+
+            More details about the requirements for each type of warrant are provided after pressing the button below.
+        """
+        view = WarrantRequestInit(self.bot.db_pool, self.bot.warrant_req_channel)
+        msg = await ctx.send(embed=embed, view=view)
+        async with await self.bot.db_pool.acquire() as cnc:
+            await cnc.execute("DELETE FROM request_message;")
+
+            await cnc.execute("INSERT INTO request_message VALUES(?);", (msg.id))
+            await cnc.commit()
+        self.warrant_req_message = msg.id
+
+    @commands.command(
+        name="setrequestchannel",
+        help="Sets the warrant request channel",
+        brief="Sets the warrant request channel",
+    )
+    @commands.is_owner()
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.guild)
+    async def warrant_channel_msg(self, ctx: commands.Context):
+        await ctx.reply("Channel set to receive warrant requests.")
+        async with await self.bot.db_pool.acquire() as cnc:
+            await cnc.execute("DELETE FROM request_channel;")
+            await cnc.execute(
+                "INSERT INTO request_channel VALUES(?);", (ctx.channel.id)
+            )
+            await cnc.commit()
+        self.warrant_req_channel = ctx.channel.id
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):
@@ -570,5 +634,5 @@ class CoreCommands(commands.Cog):
         await ctx.reply(embed=message)
 
 
-def setup(bot: CourtsBot):
-    bot.add_cog(CoreCommands(bot))
+async def setup(bot: CourtsBot):
+    await bot.add_cog(CoreCommands(bot))

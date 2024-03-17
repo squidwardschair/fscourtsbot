@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands, tasks
 import aiohttp
 import config
-from dpyutils import CourtHelp
+from dpyutils import CourtHelp, WarrantRequestInit
 import pathlib
 from typing import List
-
+import asqlite
 class CourtsBot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -36,13 +36,9 @@ class CourtsBot(commands.Bot):
             "5bca6f3c24afea5d2b007136",
             "5c54684b92c5f91774896b08",
         ]
-
-    async def close(self):
-        await self.session.close()
-        await super().close()
-
-    async def on_connect(self):
-        self.session = aiohttp.ClientSession(loop=self.loop)
+        self.db_pool : asqlite.Pool = None
+        self.warrant_req_message = None
+        self.warrant_req_channel = None
 
     async def check_trello(self):
         async with self.session.get(
@@ -71,6 +67,9 @@ class CourtsBot(commands.Bot):
                 info = await b.json()
             for list in info:
                 self.lists[list["id"]] = list["name"]
+    
+    async def load_db(self):
+        self.db_pool = await asqlite.create_pool('records.db', size=20)
 
     def run_bot(self):
         p = pathlib.Path("./")
@@ -82,13 +81,28 @@ class CourtsBot(commands.Bot):
                 for _ in of.readlines():
                     count += 1
         self.loc = count
-        self.load_extension("corecommands")
         self.run(config.TOKEN)
 
     async def getreq_json(self, url: str):
         async with self.session.get(url) as i:
             info = await i.json()
         return info
+    
+    async def setup_hook(self):
+        await self.load_extension("corecommands")
+        await self.load_db()
+        async with await self.db_pool.acquire() as cnc:
+            msg_cursor = await cnc.fetchone("SELECT * FROM request_message;")
+            self.warrant_req_message = dict(msg_cursor)['messageid']
+            chnl_cursor = await cnc.fetchone("SELECT channelid FROM request_channel;")
+            self.warrant_req_channel = dict(chnl_cursor)['channelid']
+        req_channel = await self.fetch_channel(int(self.warrant_req_channel))
+        self.add_view(WarrantRequestInit(self.db_pool, req_channel), message_id=self.warrant_req_message)
+        self.session = aiohttp.ClientSession(loop=self.loop)
+    
+    async def close(self):
+        await self.db_pool.close()
+        await super().close()
 
 bot = CourtsBot()
 
@@ -133,5 +147,5 @@ async def on_ready():
 async def block_dms(ctx: commands.Context):
     return ctx.guild is not None
 
-
-bot.run_bot()
+if __name__ == "__main__":
+    bot.run_bot()
