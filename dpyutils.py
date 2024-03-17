@@ -347,7 +347,7 @@ class CallbackForm(discord.ui.Modal):
         if self.id<100:
             for i in range(3-(len(str(self.id)))):
                 self.id="0"+str(self.id)
-        if isinstance(self.message, str):
+        if self.message.value:
             message_part = ' A message regarding this decision from the court official who viewed your warrant request is below.\n\n```'+self.message+'```'
         else:
             message_part=None
