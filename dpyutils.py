@@ -355,8 +355,12 @@ class CallbackForm(discord.ui.Modal):
             message_part = ' A message regarding this decision from the court official who viewed your warrant request is below.\n\n```'+self.message.value+'```'
         else:
             message_part=None
+        if self.warrant_link.value:
+            warrant_part = f' The warrant link can be accessed [here]({self.warrant_link}).'
+        else:
+            warrant_part=None
         try:
-            await self.user.send(f"Your warrant request with ID `W-{datetime.strptime(self.timestamp, '%Y-%m-%d %H:%M:%S').strftime('%m%d%y')}-{self.id}` was **{'ACCEPTED' if self.accepted else 'DENIED'}** by <@{self.judge.id}>.{f' The warrant link can be accessed [here]({self.warrant_link}).' if self.accepted else ''}{message_part if message_part else ''}")
+            await self.user.send(f"Your warrant request with ID `W-{datetime.strptime(self.timestamp, '%Y-%m-%d %H:%M:%S').strftime('%m%d%y')}-{self.id}` was **{'ACCEPTED' if self.accepted else 'DENIED'}** by <@{self.judge.id}>.{warrant_part if (self.accepted and warrant_part) else ''}{message_part if message_part else ''}")
         except discord.HTTPException:
             print('unable to send')
         self.embed.title="Resolved warrant request"
