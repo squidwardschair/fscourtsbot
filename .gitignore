@@ -24,3 +24,8 @@ env.bak/
 venv.bak/
 token.txt
 config.py
+
+# databases!
+*.db
+*.db-shm
+*.db-wal
