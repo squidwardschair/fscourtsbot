@@ -19,7 +19,7 @@ class WarrantRequestInit(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.Button,
     ):
-        view = view = WarrantRequestForm(self.db_pool, self.channel)
+        view = WarrantRequestForm(self.db_pool, self.channel)
         embed = discord.Embed(
             title="Uniform Warrant Request System",
             timestamp=discord.utils.utcnow(),
@@ -41,7 +41,11 @@ You can request a search warrant for a storage unit at Rage Storage.
 You can also request a search warrant to search a person or some property.""",
             inline=False,
         )
-        view.message = await interaction.user.send(embed=embed, view=view)
+        try: 
+            view.message = await interaction.user.send(embed=embed, view=view)
+        except discord.HTTPException:
+            await interaction.response.send_message("I was unable to DM you.", ephemeral=True)
+            return
         await interaction.response.send_message(
             "Request form sent to your DMs.", ephemeral=True
         )
@@ -351,7 +355,10 @@ class CallbackForm(discord.ui.Modal):
             message_part = ' A message regarding this decision from the court official who viewed your warrant request is below.\n\n```'+self.message.value+'```'
         else:
             message_part=None
-        await self.user.send(f"Your warrant request with ID `W-{datetime.strptime(self.timestamp, '%Y-%m-%d %H:%M:%S').strftime('%m%d%y')}-{self.id}` was **{'ACCEPTED' if self.accepted else 'DENIED'}** by <@{self.judge.id}>.{f' The warrant link can be accessed [here]({self.warrant_link}).' if self.accepted else ''}{message_part if message_part else ''}")
+        try:
+            await self.user.send(f"Your warrant request with ID `W-{datetime.strptime(self.timestamp, '%Y-%m-%d %H:%M:%S').strftime('%m%d%y')}-{self.id}` was **{'ACCEPTED' if self.accepted else 'DENIED'}** by <@{self.judge.id}>.{f' The warrant link can be accessed [here]({self.warrant_link}).' if self.accepted else ''}{message_part if message_part else ''}")
+        except discord.HTTPException:
+            print('unable to send')
         self.embed.title="Resolved warrant request"
         view=discord.ui.View()
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.gray, label=f"Resolved by {interaction.user.name}", disabled=True))
